@@ -4,26 +4,7 @@ import { useThemeCtx } from "../theme.js";
 import { Card } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, buildSetRow, teamLabel } from "./scoringEngine.js";
-
-function isNativePlatform() {
-  return !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
-}
-
-async function shareMatch(text) {
-  try {
-    if (isNativePlatform()) {
-      const { Share } = await import("@capacitor/share");
-      await Share.share({ title: "Wynik meczu", text });
-      return;
-    }
-    if (navigator.share) {
-      await navigator.share({ title: "Wynik meczu", text });
-      return;
-    }
-    await navigator.clipboard?.writeText(text);
-    alert("Skopiowano wynik do schowka");
-  } catch {}
-}
+import { shareMatch, buildShareUrl } from "./shareLink.js";
 
 function matchSetsRow(match) {
   if (match.status === "completed" && match.finalSetsOverride) {
@@ -62,7 +43,10 @@ function MatchCard({ match, onOpen, onDelete }) {
           <span style={{ fontSize: 12, color: t.textSub }}>📅 {match.date}{match.surface ? ` · ${match.surface}` : ""}</span>
           <div style={{ display: "flex", gap: 10 }}>
             <button
-              onClick={(e) => { e.stopPropagation(); shareMatch(`${name1} – ${name2}: ${sets.join(" ")}`); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                shareMatch(`${name1} – ${name2}: ${sets.join(" ")}`, buildShareUrl(match, sets));
+              }}
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.textSub }}
               title="Udostępnij"
             >🔗</button>

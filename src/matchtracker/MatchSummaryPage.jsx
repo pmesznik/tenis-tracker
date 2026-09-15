@@ -4,23 +4,7 @@ import { useThemeCtx } from "../theme.js";
 import { TopBar, FullScreen, ScrollBody, Card } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, TEAM1, TEAM2 } from "./scoringEngine.js";
-
-function isNativePlatform() {
-  return !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
-}
-
-async function shareMatch(text) {
-  try {
-    if (isNativePlatform()) {
-      const { Share } = await import("@capacitor/share");
-      await Share.share({ title: "Wynik meczu", text });
-      return;
-    }
-    if (navigator.share) { await navigator.share({ title: "Wynik meczu", text }); return; }
-    await navigator.clipboard?.writeText(text);
-    alert("Skopiowano wynik do schowka");
-  } catch {}
-}
+import { shareMatch, buildShareUrl } from "./shareLink.js";
 
 function emptyStats() {
   return { aces: 0, doubleFaults: 0, winners: 0, forcedErrors: 0, unforcedErrors: 0, netPoints: 0 };
@@ -126,7 +110,10 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
           {match.status === "in_progress" && (
             <button style={styles.primaryBtn} onClick={() => onContinue(match.id)}>▶️ Kontynuuj mecz</button>
           )}
-          <button style={styles.secondaryBtn} onClick={() => shareMatch(`${name1} – ${name2}: ${setsRow.join(" ")}`)}>🔗 Udostępnij wynik</button>
+          <button
+            style={{ ...styles.primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            onClick={() => shareMatch(`${name1} – ${name2}: ${setsRow.join(" ")}`, buildShareUrl(match, setsRow))}
+          >📤 Udostępnij wynik</button>
           <button style={{ ...styles.secondaryBtn, color: t.danger }} onClick={handleDelete}>🗑️ Usuń mecz</button>
         </div>
       </ScrollBody>

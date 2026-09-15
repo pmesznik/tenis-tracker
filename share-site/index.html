@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Wynik meczu — Tenis Tracker</title>
+<meta property="og:title" content="Tenis Tracker — wynik meczu" />
+<meta property="og:description" content="Zobacz wynik meczu zapisany w aplikacji Tenis Tracker." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#111144" />
+<style>
+  :root{
+    --bg:#111144; --bg2:#223382; --accent:#f98513; --accent2:#ffab4d;
+    --text:#f4f1ec; --text-sub:rgba(244,241,236,0.65); --text-muted:rgba(244,241,236,0.4);
+    --surface:rgba(155,172,216,0.08); --border:rgba(155,172,216,0.20);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh; min-height:100dvh; font-family:'Barlow Condensed','Oswald',-apple-system,'Segoe UI',sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at 12% -10%, rgba(155,172,216,0.22) 0%, transparent 42%),
+      radial-gradient(circle at 100% 105%, rgba(249,133,19,0.16) 0%, transparent 46%),
+      linear-gradient(165deg, #0c0c33 0%, #111144 38%, #1b2456 72%, var(--bg2) 100%);
+    background-attachment:fixed;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px calc(16px + env(safe-area-inset-right,0px)) 24px calc(16px + env(safe-area-inset-left,0px));
+  }
+  .card{
+    width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border);
+    border-radius:18px; padding:28px 22px; text-align:center; backdrop-filter:blur(10px);
+  }
+  .brand{
+    font-size:12px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--text-muted); margin-bottom:18px; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .players{ font-size:21px; font-weight:800; line-height:1.5; }
+  .vs{ font-size:12px; color:var(--text-muted); font-weight:700; letter-spacing:0.08em; margin:2px 0; }
+  .winner{ color:var(--accent); }
+  .winner .trophy{ margin-right:4px; }
+  .sets{
+    display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
+    font-size:26px; font-weight:800; color:var(--accent); margin:18px 0 14px;
+  }
+  .meta{ font-size:13px; color:var(--text-sub); }
+  .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--accent); margin-right:5px; vertical-align:middle; }
+  .footer{ margin-top:22px; font-size:11px; color:var(--text-muted); }
+  .error{ font-size:15px; color:var(--text-sub); padding:20px 0; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="brand">🎾 Tenis Tracker</div>
+  <div id="content"><div class="error">Wczytywanie…</div></div>
+</div>
+<script>
+(function () {
+  var SURFACE_COLORS = { "Ziemna": "#e8813f", "Twarda": "#38bdf8", "Trawa": "#4ade80" };
+
+  function fromBase64Url(b64url) {
+    var b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    return decodeURIComponent(escape(atob(b64)));
+  }
+
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = String(s == null ? "" : s);
+    return d.innerHTML;
+  }
+
+  function render() {
+    var params = new URLSearchParams(window.location.search);
+    var raw = params.get("d");
+    var content = document.getElementById("content");
+    if (!raw) {
+      content.innerHTML = '<div class="error">Brak danych meczu w linku.</div>';
+      return;
+    }
+    var data;
+    try {
+      data = JSON.parse(fromBase64Url(raw));
+    } catch (e) {
+      content.innerHTML = '<div class="error">Nieprawidłowy link do wyniku.</div>';
+      return;
+    }
+
+    var t1 = (data.t1 || []).filter(Boolean).join(" / ") || "Gracz 1";
+    var t2 = (data.t2 || []).filter(Boolean).join(" / ") || "Gracz 2";
+    var sets = Array.isArray(data.s) ? data.s : [];
+    var accent = SURFACE_COLORS[data.sf] || "#f98513";
+    document.documentElement.style.setProperty("--accent", accent);
+
+    var p1Class = data.w === "team1" ? "winner" : "";
+    var p2Class = data.w === "team2" ? "winner" : "";
+    var trophy1 = data.w === "team1" ? '<span class="trophy">🏆</span>' : "";
+    var trophy2 = data.w === "team2" ? '<span class="trophy">🏆</span>' : "";
+
+    var metaParts = [];
+    if (data.d) metaParts.push("📅 " + esc(data.d));
+    if (data.sf) metaParts.push('<span class="dot"></span>' + esc(data.sf));
+
+    content.innerHTML =
+      '<div class="players ' + p1Class + '">' + trophy1 + esc(t1) + "</div>" +
+      '<div class="vs">vs.</div>' +
+      '<div class="players ' + p2Class + '">' + trophy2 + esc(t2) + "</div>" +
+      '<div class="sets">' + sets.map(function (s) { return "<span>" + esc(s) + "</span>"; }).join("") + "</div>" +
+      '<div class="meta">' + metaParts.join(" &nbsp;·&nbsp; ") + "</div>" +
+      '<div class="footer">Wynik zapisany w aplikacji Tenis Tracker</div>';
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
