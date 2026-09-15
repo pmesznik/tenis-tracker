@@ -168,18 +168,20 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   const isBasic = match.trackingDepth === "basic";
   const TopRow = (
     <div style={{ display: "flex", alignItems: "center", padding: "6px 14px", justifyContent: "space-between" }}>
-      <span style={{ fontSize: 12, fontWeight: 800, color: t.textMuted, textTransform: "uppercase" }}>
-        {isBasic ? "" : stage.name === "serve1" ? "1. Serwis" : stage.name === "serve2" ? "2. Serwis" : stage.name === "rally" ? "Wymiana" : "Wynik piłki"}
-      </span>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {liveShareButton}
-        <button onClick={handleUndo} disabled={match.pointLog.length === 0} style={{
-          background: t.surfaceElevated, border: `1px solid ${match.pointLog.length ? t.accent + "55" : t.borderStrong}`,
-          color: match.pointLog.length ? t.accent : t.textMuted, borderRadius: 8, padding: "6px 12px",
-          fontWeight: 800, fontSize: 12, cursor: match.pointLog.length ? "pointer" : "default", fontFamily: "inherit",
-          display: "flex", alignItems: "center", gap: 5,
-        }}>↩ Cofnij</button>
+        {!isBasic && (
+          <span style={{ fontSize: 12, fontWeight: 800, color: t.textMuted, textTransform: "uppercase" }}>
+            {stage.name === "serve1" ? "1. Serwis" : stage.name === "serve2" ? "2. Serwis" : stage.name === "rally" ? "Wymiana" : "Wynik piłki"}
+          </span>
+        )}
       </div>
+      <button onClick={handleUndo} disabled={match.pointLog.length === 0} style={{
+        background: t.surfaceElevated, border: `1px solid ${match.pointLog.length ? t.accent + "55" : t.borderStrong}`,
+        color: match.pointLog.length ? t.accent : t.textMuted, borderRadius: 8, padding: "6px 12px",
+        fontWeight: 800, fontSize: 12, cursor: match.pointLog.length ? "pointer" : "default", fontFamily: "inherit",
+        display: "flex", alignItems: "center", gap: 5,
+      }}>↩ Cofnij</button>
     </div>
   );
 
