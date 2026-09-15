@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Tenis Tracker v0.1.0
+// Tennis Tracker v0.1.0
 // scoringEngine.js — czysta logika liczenia wyniku meczu tenisowego.
 //
 // Kluczowa decyzja architektoniczna: computeScore() NIE trzyma mutowalnego

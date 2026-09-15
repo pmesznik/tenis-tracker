@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Tenis Tracker v0.2.0
+// Tennis Tracker v0.2.0
 // ui.jsx — małe, współdzielone komponenty wizualne używane na kilku ekranach
 // trackera (duże przyciski akcji, karta, pasek górny).
 // ─────────────────────────────────────────────────────────────────────────────

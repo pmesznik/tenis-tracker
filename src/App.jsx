@@ -1,4 +1,4 @@
-// Tenis Tracker v0.2.0 — główny komponent aplikacji.
+// Tennis Tracker v0.2.0 — główny komponent aplikacji.
 import { useState, useMemo } from "react";
 import { ThemeContext, themeForSurface, makeStyles } from "./theme.js";
 import { APP_NAME, APP_VERSION } from "./version.js";

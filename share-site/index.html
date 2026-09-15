@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Wynik meczu — Tenis Tracker</title>
-<meta property="og:title" content="Tenis Tracker — wynik meczu" />
-<meta property="og:description" content="Zobacz wynik meczu zapisany w aplikacji Tenis Tracker." />
+<title>Wynik meczu — Tennis Tracker</title>
+<meta property="og:title" content="Tennis Tracker — wynik meczu" />
+<meta property="og:description" content="Zobacz wynik meczu zapisany w aplikacji Tennis Tracker." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#111144" />
 <style>
@@ -35,14 +35,23 @@
     font-size:12px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase;
     color:var(--text-muted); margin-bottom:18px; display:flex; align-items:center; justify-content:center; gap:6px;
   }
+  .live-badge{
+    display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800;
+    letter-spacing:0.08em; color:#ef4444; background:rgba(239,68,68,0.15);
+    border:1px solid rgba(239,68,68,0.4); padding:4px 10px; border-radius:20px; margin-bottom:14px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.55;} }
   .players{ font-size:21px; font-weight:800; line-height:1.5; }
   .vs{ font-size:12px; color:var(--text-muted); font-weight:700; letter-spacing:0.08em; margin:2px 0; }
   .winner{ color:var(--accent); }
   .winner .trophy{ margin-right:4px; }
   .sets{
     display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
-    font-size:26px; font-weight:800; color:var(--accent); margin:18px 0 14px;
+    font-size:26px; font-weight:800; color:var(--accent); margin:18px 0 6px;
   }
+  .game{ font-size:38px; font-weight:800; color:var(--text); margin:6px 0 14px; }
+  .game .colon{ color:var(--text-muted); margin:0 10px; }
   .meta{ font-size:13px; color:var(--text-sub); }
   .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--accent); margin-right:5px; vertical-align:middle; }
   .footer{ margin-top:22px; font-size:11px; color:var(--text-muted); }
@@ -51,67 +60,109 @@
 </head>
 <body>
 <div class="card" id="card">
-  <div class="brand">🎾 Tenis Tracker</div>
+  <div class="brand">🎾 Tennis Tracker</div>
   <div id="content"><div class="error">Wczytywanie…</div></div>
 </div>
-<script>
-(function () {
-  var SURFACE_COLORS = { "Ziemna": "#e8813f", "Twarda": "#38bdf8", "Trawa": "#4ade80" };
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+  const SURFACE_COLORS = { "Ziemna": "#e8813f", "Twarda": "#38bdf8", "Trawa": "#4ade80" };
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDgjd3EhID7KR-krrNNXx3Uv5yny9LkCsE",
+    authDomain: "tenis-tracker-live.firebaseapp.com",
+    databaseURL: "https://tenis-tracker-live-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "tenis-tracker-live",
+    storageBucket: "tenis-tracker-live.firebasestorage.app",
+    messagingSenderId: "724796439670",
+    appId: "1:724796439670:web:da904995717555fa0ff357",
+  };
 
   function fromBase64Url(b64url) {
-    var b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
+    let b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
     while (b64.length % 4) b64 += "=";
     return decodeURIComponent(escape(atob(b64)));
   }
 
   function esc(s) {
-    var d = document.createElement("div");
+    const d = document.createElement("div");
     d.textContent = String(s == null ? "" : s);
     return d.innerHTML;
   }
 
-  function render() {
-    var params = new URLSearchParams(window.location.search);
-    var raw = params.get("d");
-    var content = document.getElementById("content");
-    if (!raw) {
-      content.innerHTML = '<div class="error">Brak danych meczu w linku.</div>';
-      return;
-    }
-    var data;
-    try {
-      data = JSON.parse(fromBase64Url(raw));
-    } catch (e) {
-      content.innerHTML = '<div class="error">Nieprawidłowy link do wyniku.</div>';
+  function renderMatch(data, opts) {
+    opts = opts || {};
+    const content = document.getElementById("content");
+    if (!data) {
+      content.innerHTML = '<div class="error">' +
+        (opts.live ? "Ten mecz nie jest teraz udostępniany na żywo." : "Nieprawidłowy link do wyniku.") +
+        "</div>";
       return;
     }
 
-    var t1 = (data.t1 || []).filter(Boolean).join(" / ") || "Gracz 1";
-    var t2 = (data.t2 || []).filter(Boolean).join(" / ") || "Gracz 2";
-    var sets = Array.isArray(data.s) ? data.s : [];
-    var accent = SURFACE_COLORS[data.sf] || "#f98513";
-    document.documentElement.style.setProperty("--accent", accent);
+    const t1 = (data.t1 || []).filter(Boolean).join(" / ") || "Gracz 1";
+    const t2 = (data.t2 || []).filter(Boolean).join(" / ") || "Gracz 2";
+    const sets = Array.isArray(data.sets) ? data.sets : Array.isArray(data.s) ? data.s : [];
+    const surface = data.sf || null;
+    document.documentElement.style.setProperty("--accent", SURFACE_COLORS[surface] || "#f98513");
 
-    var p1Class = data.w === "team1" ? "winner" : "";
-    var p2Class = data.w === "team2" ? "winner" : "";
-    var trophy1 = data.w === "team1" ? '<span class="trophy">🏆</span>' : "";
-    var trophy2 = data.w === "team2" ? '<span class="trophy">🏆</span>' : "";
+    const winner = data.w || data.matchWinner || null;
+    const p1Class = winner === "team1" ? "winner" : "";
+    const p2Class = winner === "team2" ? "winner" : "";
+    const trophy1 = winner === "team1" ? '<span class="trophy">🏆</span>' : "";
+    const trophy2 = winner === "team2" ? '<span class="trophy">🏆</span>' : "";
+    const ball1 = !winner && data.server === "team1" ? " 🎾" : "";
+    const ball2 = !winner && data.server === "team2" ? " 🎾" : "";
 
-    var metaParts = [];
+    let gameRow = "";
+    if (!winner && (data.gameA != null || data.gameB != null)) {
+      gameRow = '<div class="game">' + esc(data.gameA) + '<span class="colon">:</span>' + esc(data.gameB) + "</div>";
+    }
+
+    const metaParts = [];
     if (data.d) metaParts.push("📅 " + esc(data.d));
-    if (data.sf) metaParts.push('<span class="dot"></span>' + esc(data.sf));
+    if (surface) metaParts.push('<span class="dot"></span>' + esc(surface));
 
     content.innerHTML =
-      '<div class="players ' + p1Class + '">' + trophy1 + esc(t1) + "</div>" +
+      (opts.live ? '<div class="live-badge">🔴 NA ŻYWO</div>' : "") +
+      '<div class="players ' + p1Class + '">' + trophy1 + esc(t1) + ball1 + "</div>" +
       '<div class="vs">vs.</div>' +
-      '<div class="players ' + p2Class + '">' + trophy2 + esc(t2) + "</div>" +
-      '<div class="sets">' + sets.map(function (s) { return "<span>" + esc(s) + "</span>"; }).join("") + "</div>" +
+      '<div class="players ' + p2Class + '">' + trophy2 + esc(t2) + ball2 + "</div>" +
+      '<div class="sets">' + sets.map((s) => "<span>" + esc(s) + "</span>").join("") + "</div>" +
+      gameRow +
       '<div class="meta">' + metaParts.join(" &nbsp;·&nbsp; ") + "</div>" +
-      '<div class="footer">Wynik zapisany w aplikacji Tenis Tracker</div>';
+      '<div class="footer">Wynik ' + (winner ? "zapisany" : "na żywo") + " w aplikacji Tennis Tracker</div>";
   }
 
-  render();
-})();
+  function init() {
+    const params = new URLSearchParams(window.location.search);
+    const liveId = params.get("live");
+    const staticData = params.get("d");
+
+    if (liveId) {
+      const app = initializeApp(FIREBASE_CONFIG);
+      const database = getDatabase(app);
+      onValue(
+        ref(database, "liveMatches/" + liveId),
+        (snapshot) => renderMatch(snapshot.val(), { live: true }),
+        () => renderMatch(null, { live: true })
+      );
+      return;
+    }
+
+    if (staticData) {
+      try {
+        renderMatch(JSON.parse(fromBase64Url(staticData)));
+      } catch (e) {
+        renderMatch(null);
+      }
+      return;
+    }
+
+    renderMatch(null);
+  }
+
+  init();
 </script>
 </body>
 </html>

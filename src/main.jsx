@@ -1,4 +1,4 @@
-// Tenis Tracker v0.1.0
+// Tennis Tracker v0.1.0
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";

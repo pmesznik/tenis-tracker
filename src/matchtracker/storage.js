@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Tenis Tracker v0.1.0
+// Tennis Tracker v0.1.0
 // storage.js — lokalne przechowywanie meczów (localStorage), ten sam
 // defensywny wzorzec co getFavorites/saveFavorites w App.jsx: przy błędnym
 // JSON-ie czyścimy klucz zamiast wywalać całą aplikację.

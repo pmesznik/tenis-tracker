@@ -1,10 +1,11 @@
-// Tenis Tracker v0.2.0 — podsumowanie meczu (wynik + statystyki).
+// Tennis Tracker v0.2.0 — podsumowanie meczu (wynik + statystyki).
 import { useEffect } from "react";
 import { useThemeCtx } from "../theme.js";
 import { TopBar, FullScreen, ScrollBody, Card } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildShareUrl } from "./shareLink.js";
+import { clearLiveScore } from "./liveSync.js";
 
 function emptyStats() {
   return { aces: 0, doubleFaults: 0, winners: 0, forcedErrors: 0, unforcedErrors: 0, netPoints: 0 };
@@ -61,6 +62,7 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
   const handleDelete = () => {
     if (!confirm("Usunąć ten mecz?")) return;
     storage.deleteMatch(match.id);
+    clearLiveScore(match.id);
     onDeleted();
   };
 

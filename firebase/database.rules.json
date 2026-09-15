@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "liveMatches": {
+      "$matchId": {
+        ".read": true,
+        ".write": true,
+        ".validate": "newData.hasChildren(['t1', 't2', 'sets', 'updatedAt'])"
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// theme.js — Tenis Tracker v0.2.0 — motyw zależny od nawierzchni kortu, nie od
+// theme.js — Tennis Tracker v0.2.0 — motyw zależny od nawierzchni kortu, nie od
 // jasny/ciemny. Poza konkretnym meczem (lista, brak wybranej nawierzchni)
 // aplikacja jest w neutralnym granacie; gdy zakłada się mecz albo się go
 // śledzi/przegląda, cała apka przebarwia się zgodnie z nawierzchnią:

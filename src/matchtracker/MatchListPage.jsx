@@ -1,10 +1,11 @@
-// Tenis Tracker v0.2.0 — lista meczów (ekran startowy).
+// Tennis Tracker v0.2.0 — lista meczów (ekran startowy).
 import { useState } from "react";
 import { useThemeCtx } from "../theme.js";
 import { Card } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, buildSetRow, teamLabel } from "./scoringEngine.js";
 import { shareMatch, buildShareUrl } from "./shareLink.js";
+import { clearLiveScore } from "./liveSync.js";
 
 function matchSetsRow(match) {
   if (match.status === "completed" && match.finalSetsOverride) {
@@ -70,6 +71,7 @@ export default function MatchListPage({ onNewMatch, onSaveResult, onOpenMatch })
 
   const handleDelete = (id) => {
     storage.deleteMatch(id);
+    clearLiveScore(id);
     refresh();
   };
 

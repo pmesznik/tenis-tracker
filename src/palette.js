@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// palette.js — Tenis Tracker v0.1.0 — oficjalna paleta marki (dostarczona
+// palette.js — Tennis Tracker v0.1.0 — oficjalna paleta marki (dostarczona
 // przez Pawła). Surowe wartości; mapowanie na motyw jasny/ciemny w theme.js.
 // ─────────────────────────────────────────────────────────────────────────────
 export const LUSTER_WHITE = "#F4F1EC";

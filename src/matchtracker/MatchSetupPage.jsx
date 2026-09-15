@@ -1,4 +1,4 @@
-// Tenis Tracker v0.2.0 — ekran zakładania nowego meczu / zapisu ręcznego wyniku.
+// Tennis Tracker v0.2.0 — ekran zakładania nowego meczu / zapisu ręcznego wyniku.
 import { useState } from "react";
 import { useThemeCtx, SURFACES, themeForSurface } from "../theme.js";
 import { Card, TopBar, FullScreen, ScrollBody } from "./ui.jsx";

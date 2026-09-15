@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Tenis Tracker — udostępnianie wyniku meczu linkiem.
+// Tennis Tracker — udostępnianie wyniku meczu linkiem.
 //
 // Link nie wymaga żadnego backendu: dane meczu (nazwiska, wynik, nawierzchnia,
 // data) są zakodowane w base64url bezpośrednio w parametrze `d` adresu URL.
@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { computeScore } from "./scoringEngine.js";
 
-export const SHARE_BASE_URL = "https://pmesznik.github.io/tenis-tracker";
+export const SHARE_BASE_URL = "https://pmesznik.github.io/tennis-tracker";
 
 function toBase64Url(str) {
   const b64 = btoa(unescape(encodeURIComponent(str)));
@@ -43,6 +43,13 @@ export function buildShareUrl(match, setsRow) {
     w: deriveWinner(match),
   };
   return `${SHARE_BASE_URL}/?d=${toBase64Url(JSON.stringify(payload))}`;
+}
+
+// Link do trybu "na żywo" — strona pod tym adresem subskrybuje Firebase
+// Realtime Database (liveMatches/{matchId}) i sama się odświeża przy każdym
+// nowym punkcie, dopóki nadawca ma włączone udostępnianie na żywo.
+export function buildLiveShareUrl(matchId) {
+  return `${SHARE_BASE_URL}/?live=${matchId}`;
 }
 
 export function isNativePlatform() {

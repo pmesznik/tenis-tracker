@@ -1,11 +1,29 @@
-// Tenis Tracker v0.2.0 — ekran śledzenia meczu na żywo.
+// Tennis Tracker v0.2.0 — ekran śledzenia meczu na żywo.
 import { useState, useEffect } from "react";
 import { useThemeCtx } from "../theme.js";
 import { TopBar, FullScreen, BigButton, Chip, ScoreTile, TennisBall } from "./ui.jsx";
 import * as storage from "./storage.js";
-import { computeScore, formatSetsString, teamLabel, otherTeam, TEAM1, TEAM2 } from "./scoringEngine.js";
+import { computeScore, formatSetsString, buildSetRow, teamLabel, otherTeam, TEAM1, TEAM2 } from "./scoringEngine.js";
+import { shareMatch, buildLiveShareUrl } from "./shareLink.js";
+import { publishLiveScore } from "./liveSync.js";
 
 const INITIAL_STAGE = { name: "serve1", rallyCount: 0, shotType: "forehand", atNet: false, serveUsed: "1st" };
+
+// Migawka wyniku wysyłana do Firebase, gdy mecz jest udostępniony na żywo —
+// widz na stronie share-site widzi dokładnie te pola.
+function buildLivePayload(match, score) {
+  return {
+    t1: (match.team1?.names || []).filter(Boolean),
+    t2: (match.team2?.names || []).filter(Boolean),
+    sets: buildSetRow(match.rules, score),
+    gameA: score.game?.a ?? null,
+    gameB: score.game?.b ?? null,
+    server: score.server,
+    matchWinner: score.matchWinner,
+    sf: match.surface || null,
+    d: match.date || null,
+  };
+}
 
 export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfaceChange }) {
   const { t } = useThemeCtx();
@@ -40,6 +58,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
     const updated = storage.updateMatch(match.id, patch);
     setMatch(updated);
     setStage(INITIAL_STAGE);
+    if (updated.liveShareEnabled) publishLiveScore(updated.id, buildLivePayload(updated, newScore));
     if (newScore.matchWinner) onFinished(updated);
   };
 
@@ -47,6 +66,26 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
     const updated = storage.updateMatch(match.id, { initialServer: team });
     setMatch(updated);
   };
+
+  const handleShareLive = () => {
+    let m = match;
+    if (!m.liveShareEnabled) {
+      m = storage.updateMatch(m.id, { liveShareEnabled: true });
+      setMatch(m);
+    }
+    publishLiveScore(m.id, buildLivePayload(m, computeScore(rules, m.pointLog, m.initialServer || TEAM1)));
+    shareMatch(`${name1} – ${name2}: śledź mecz na żywo`, buildLiveShareUrl(m.id));
+  };
+
+  const liveShareButton = (
+    <button onClick={handleShareLive} title="Udostępnij na żywo" style={{
+      background: match.liveShareEnabled ? `${t.danger}22` : t.surfaceElevated,
+      border: `1px solid ${match.liveShareEnabled ? t.danger : t.borderStrong}`,
+      color: match.liveShareEnabled ? t.danger : t.textSub,
+      borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 800,
+      cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
+    }}>🔴 Na żywo</button>
+  );
 
   const commitPoint = (winner, extra = {}) => {
     const point = { winner, server: score.server, ...extra };
@@ -132,12 +171,15 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       <span style={{ fontSize: 12, fontWeight: 800, color: t.textMuted, textTransform: "uppercase" }}>
         {isBasic ? "" : stage.name === "serve1" ? "1. Serwis" : stage.name === "serve2" ? "2. Serwis" : stage.name === "rally" ? "Wymiana" : "Wynik piłki"}
       </span>
-      <button onClick={handleUndo} disabled={match.pointLog.length === 0} style={{
-        background: t.surfaceElevated, border: `1px solid ${match.pointLog.length ? t.accent + "55" : t.borderStrong}`,
-        color: match.pointLog.length ? t.accent : t.textMuted, borderRadius: 8, padding: "6px 12px",
-        fontWeight: 800, fontSize: 12, cursor: match.pointLog.length ? "pointer" : "default", fontFamily: "inherit",
-        display: "flex", alignItems: "center", gap: 5,
-      }}>↩ Cofnij</button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {liveShareButton}
+        <button onClick={handleUndo} disabled={match.pointLog.length === 0} style={{
+          background: t.surfaceElevated, border: `1px solid ${match.pointLog.length ? t.accent + "55" : t.borderStrong}`,
+          color: match.pointLog.length ? t.accent : t.textMuted, borderRadius: 8, padding: "6px 12px",
+          fontWeight: 800, fontSize: 12, cursor: match.pointLog.length ? "pointer" : "default", fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 5,
+        }}>↩ Cofnij</button>
+      </div>
     </div>
   );
 
