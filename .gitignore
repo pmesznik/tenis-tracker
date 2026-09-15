@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.apk
+*.aab
+.DS_Store
+npm-debug.log*
+
+# Klucz debugowy CI jest celowo NIE ignorowany (android/app/debug.keystore) —
+# ma być stały, żeby kolejne buildy CI mogły się instalować "w miejscu".
