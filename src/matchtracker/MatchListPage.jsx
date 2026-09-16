@@ -1,6 +1,7 @@
 // Tennis Tracker v0.2.0 — lista meczów (ekran startowy).
 import { useState } from "react";
 import { useThemeCtx } from "../theme.js";
+import { useLang, surfaceLabel } from "../i18n.js";
 import { Card } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, buildSetRow, teamLabel } from "./scoringEngine.js";
@@ -19,8 +20,9 @@ function matchSetsRow(match) {
 
 function MatchCard({ match, onOpen, onDelete }) {
   const { t, styles } = useThemeCtx();
-  const name1 = teamLabel("team1", match.team1.names, match.team2.names);
-  const name2 = teamLabel("team2", match.team1.names, match.team2.names);
+  const { lang, t: tr } = useLang();
+  const name1 = teamLabel("team1", match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
+  const name2 = teamLabel("team2", match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
   const sets = matchSetsRow(match);
   return (
     <Card>
@@ -34,14 +36,14 @@ function MatchCard({ match, onOpen, onDelete }) {
               fontSize: 10, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase",
               background: "rgba(16,185,129,0.15)", color: "#10b981",
               padding: "3px 8px", borderRadius: 6, flexShrink: 0,
-            }}>W trakcie</span>
+            }}>{tr("list.inProgress")}</span>
           )}
         </div>
         <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginTop: 6, display: "flex", gap: 10 }}>
           {sets.map((s, i) => <span key={i}>{s}</span>)}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-          <span style={{ fontSize: 12, color: t.textSub }}>📅 {match.date}{match.surface ? ` · ${match.surface}` : ""}</span>
+          <span style={{ fontSize: 12, color: t.textSub }}>📅 {match.date}{match.surface ? ` · ${surfaceLabel(lang, match.surface)}` : ""}</span>
           <div style={{ display: "flex", gap: 10 }}>
             <button
               onClick={(e) => {
@@ -49,12 +51,12 @@ function MatchCard({ match, onOpen, onDelete }) {
                 shareMatch(`${name1} – ${name2}: ${sets.join(" ")}`, buildShareUrl(match, sets));
               }}
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.textSub }}
-              title="Udostępnij"
+              title={tr("common.share")}
             >🔗</button>
             <button
-              onClick={(e) => { e.stopPropagation(); if (confirm("Usunąć ten mecz?")) onDelete(match.id); }}
+              onClick={(e) => { e.stopPropagation(); if (confirm(tr("common.confirmDeleteMatch"))) onDelete(match.id); }}
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.textSub }}
-              title="Usuń"
+              title={tr("common.delete")}
             >🗑️</button>
           </div>
         </div>
@@ -65,6 +67,7 @@ function MatchCard({ match, onOpen, onDelete }) {
 
 export default function MatchListPage({ onNewMatch, onSaveResult, onOpenMatch }) {
   const { t, styles } = useThemeCtx();
+  const { t: tr } = useLang();
   const [matches, setMatches] = useState(() => storage.listMatches());
 
   const refresh = () => setMatches(storage.listMatches());
@@ -78,15 +81,15 @@ export default function MatchListPage({ onNewMatch, onSaveResult, onOpenMatch })
   return (
     <div style={styles.page}>
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <button style={styles.primaryBtn} onClick={onNewMatch}>🎾 Nowy mecz</button>
-        <button style={styles.secondaryBtn} onClick={onSaveResult}>✏️ Zapisz wynik</button>
+        <button style={styles.primaryBtn} onClick={onNewMatch}>🎾 {tr("list.newMatch")}</button>
+        <button style={styles.secondaryBtn} onClick={onSaveResult}>✏️ {tr("list.saveResult")}</button>
       </div>
 
       {matches.length === 0 ? (
         <div style={styles.centered}>
           <span style={{ fontSize: 32 }}>🎾</span>
-          <span>Brak zapisanych meczów</span>
-          <span style={{ fontSize: 12 }}>Zacznij od "Nowy mecz", żeby śledzić wynik na żywo.</span>
+          <span>{tr("list.emptyTitle")}</span>
+          <span style={{ fontSize: 12 }}>{tr("list.emptyHint")}</span>
         </div>
       ) : (
         matches.map((m) => (

@@ -22,58 +22,49 @@ export function otherTeam(team) {
 // tiebreakTo: do ilu punktów gra się tie-break (różnica min. 2).
 // finalSetSuperTiebreak: czy ostatni, decydujący set zastąpiony jest w całości
 //   jednym super tie-breakiem (zamiast pełnego seta).
+// Etykiety i opisy (bullets) są kluczami tłumaczeń (patrz ../i18n.js), nie
+// gotowym tekstem — ten sam preset musi dać się wyświetlić po polsku i
+// angielsku bez duplikowania definicji zasad.
 export const PRESETS = {
   best_of_3_tb: {
     key: "best_of_3_tb",
-    label: "Do 2 wygranych setów (z tie-breakiem)",
+    labelKey: "preset.bo3tb.label",
     sets: 3, gamesPerSet: 6, noAd: false,
     tiebreakAt: 6, tiebreakTo: 7,
     finalSetSuperTiebreak: false, finalSetSuperTiebreakTo: 10,
-    bullets: [
-      "Mecz do 2 wygranych setów", "Set do 6 gemów", "Zwykły system przewag (deuce)",
-      "Tie-break do 7 przy 6:6 (w każdym secie)",
-    ],
+    bulletKeys: ["b.matchTo2Sets", "b.setTo6Games", "b.deuce", "b.tbAt66every"],
   },
   best_of_3_super_tb: {
     key: "best_of_3_super_tb",
-    label: "Do 2 wygranych setów + super tie-break",
+    labelKey: "preset.bo3supertb.label",
     sets: 3, gamesPerSet: 6, noAd: false,
     tiebreakAt: 6, tiebreakTo: 7,
     finalSetSuperTiebreak: true, finalSetSuperTiebreakTo: 10,
-    bullets: [
-      "Mecz do 2 wygranych setów", "Set do 6 gemów", "Zwykły system przewag (deuce)",
-      "Tie-break do 7 przy 6:6", "Super tie-break zamiast 3. seta",
-    ],
+    bulletKeys: ["b.matchTo2Sets", "b.setTo6Games", "b.deuce", "b.tbAt66", "b.superTbInstead3rd"],
   },
   best_of_3_no_ad: {
     key: "best_of_3_no_ad",
-    label: "Do 2 wygranych setów, bez przewag + super tie-break",
+    labelKey: "preset.bo3noad.label",
     sets: 3, gamesPerSet: 6, noAd: true,
     tiebreakAt: 6, tiebreakTo: 7,
     finalSetSuperTiebreak: true, finalSetSuperTiebreakTo: 10,
-    bullets: [
-      "Mecz do 2 wygranych setów", "Set do 6 gemów", "Bez przewag (punkt decydujący przy 40:40)",
-      "Tie-break do 7 przy 6:6", "Super tie-break zamiast 3. seta",
-    ],
+    bulletKeys: ["b.matchTo2Sets", "b.setTo6Games", "b.noAd", "b.tbAt66", "b.superTbInstead3rd"],
   },
   pro_set_8: {
     key: "pro_set_8",
-    label: "Pro-set do 8 gemów",
+    labelKey: "preset.proset8.label",
     sets: 1, gamesPerSet: 8, noAd: false,
     tiebreakAt: 8, tiebreakTo: 7,
     finalSetSuperTiebreak: false, finalSetSuperTiebreakTo: 10,
-    bullets: ["Jeden set", "Set do 8 gemów", "Zwykły system przewag (deuce)", "Tie-break do 7 przy 8:8"],
+    bulletKeys: ["b.oneSet", "b.setTo8Games", "b.deuce", "b.tbAt88"],
   },
   best_of_5_tb: {
     key: "best_of_5_tb",
-    label: "Do 3 wygranych setów (z tie-breakiem)",
+    labelKey: "preset.bo5tb.label",
     sets: 5, gamesPerSet: 6, noAd: false,
     tiebreakAt: 6, tiebreakTo: 7,
     finalSetSuperTiebreak: false, finalSetSuperTiebreakTo: 10,
-    bullets: [
-      "Mecz do 3 wygranych setów", "Set do 6 gemów", "Zwykły system przewag (deuce)",
-      "Tie-break do 7 przy 6:6 (w każdym secie)",
-    ],
+    bulletKeys: ["b.matchTo3Sets", "b.setTo6Games", "b.deuce", "b.tbAt66every"],
   },
 };
 
@@ -263,9 +254,9 @@ export function formatSetsString(sets) {
   }).join(" ");
 }
 
-export function teamLabel(team, team1Names, team2Names) {
+export function teamLabel(team, team1Names, team2Names, fallback1 = "Gracz 1", fallback2 = "Gracz 2") {
   const names = team === TEAM1 ? team1Names : team2Names;
-  return (names || []).filter(Boolean).join(" / ") || (team === TEAM1 ? "Gracz 1" : "Gracz 2");
+  return (names || []).filter(Boolean).join(" / ") || (team === TEAM1 ? fallback1 : fallback2);
 }
 
 // Wiersz "gemy w każdym secie" do listy meczów — dopełniony placeholderami

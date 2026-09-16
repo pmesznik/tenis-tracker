@@ -1,6 +1,7 @@
 // Tennis Tracker v0.2.0 — podsumowanie meczu (wynik + statystyki).
 import { useEffect } from "react";
 import { useThemeCtx } from "../theme.js";
+import { useLang, surfaceLabel } from "../i18n.js";
 import { TopBar, FullScreen, ScrollBody, Card } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, TEAM1, TEAM2 } from "./scoringEngine.js";
@@ -27,26 +28,27 @@ function computeStats(pointLog) {
 }
 
 const STAT_ROWS = [
-  ["aces", "Asy serwisowe"],
-  ["doubleFaults", "Podwójne błędy"],
-  ["winners", "Winnery"],
-  ["forcedErrors", "Wymuszone błędy"],
-  ["unforcedErrors", "Niewymuszone błędy"],
-  ["netPoints", "Punkty przy siatce"],
+  ["aces", "stat.aces"],
+  ["doubleFaults", "stat.doubleFaults"],
+  ["winners", "stat.winners"],
+  ["forcedErrors", "stat.forcedErrors"],
+  ["unforcedErrors", "stat.unforcedErrors"],
+  ["netPoints", "stat.netPoints"],
 ];
 
 export default function MatchSummaryPage({ matchId, onBack, onContinue, onDeleted, onSurfaceChange }) {
   const { t, styles } = useThemeCtx();
+  const { lang, t: tr } = useLang();
   const match = storage.getMatch(matchId);
 
   useEffect(() => {
     onSurfaceChange?.(match?.surface || null);
   }, [match?.surface]);
 
-  if (!match) return <FullScreen><TopBar title="Mecz nie znaleziony" onBack={onBack} /></FullScreen>;
+  if (!match) return <FullScreen><TopBar title={tr("common.matchNotFound")} onBack={onBack} /></FullScreen>;
 
-  const name1 = teamLabel(TEAM1, match.team1.names, match.team2.names);
-  const name2 = teamLabel(TEAM2, match.team1.names, match.team2.names);
+  const name1 = teamLabel(TEAM1, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
+  const name2 = teamLabel(TEAM2, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
 
   let setsRow;
   if (match.status === "completed" && match.finalSetsOverride) {
@@ -60,7 +62,7 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
   const { stats, avgRally } = hasPointDetail ? computeStats(match.pointLog) : { stats: null, avgRally: null };
 
   const handleDelete = () => {
-    if (!confirm("Usunąć ten mecz?")) return;
+    if (!confirm(tr("common.confirmDeleteMatch"))) return;
     storage.deleteMatch(match.id);
     clearLiveScore(match.id);
     onDeleted();
@@ -68,16 +70,16 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
 
   return (
     <FullScreen>
-      <TopBar title="Podsumowanie meczu" onBack={onBack} />
+      <TopBar title={tr("summary.title")} onBack={onBack} />
       <ScrollBody style={{ padding: 16 }}>
         <Card>
           <div style={{ padding: 16, textAlign: "center" }}>
             <div style={{ fontSize: 18, fontWeight: 800 }}>{name1}</div>
-            <div style={{ fontSize: 13, color: t.textMuted, margin: "4px 0" }}>vs.</div>
+            <div style={{ fontSize: 13, color: t.textMuted, margin: "4px 0" }}>{tr("common.vs")}</div>
             <div style={{ fontSize: 18, fontWeight: 800 }}>{name2}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: t.accent, marginTop: 10 }}>{setsRow.join("  ")}</div>
             <div style={{ fontSize: 12, color: t.textSub, marginTop: 8 }}>
-              📅 {match.date}{match.surface ? ` · ${match.surface}` : ""}
+              📅 {match.date}{match.surface ? ` · ${surfaceLabel(lang, match.surface)}` : ""}
             </div>
             {match.note && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{match.note}</div>}
           </div>
@@ -86,23 +88,23 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
         {hasPointDetail && stats && (
           <Card>
             <div style={{ padding: "10px 14px", borderBottom: `1px solid ${t.border}`, fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: t.textSub }}>
-              Statystyki
+              {tr("summary.statsTitle")}
             </div>
             <div style={{ display: "flex", padding: "8px 14px", fontSize: 12, fontWeight: 800, color: t.textMuted }}>
               <span style={{ flex: 1 }}>{name1}</span>
               <span style={{ width: 120, textAlign: "center" }}> </span>
               <span style={{ flex: 1, textAlign: "right" }}>{name2}</span>
             </div>
-            {STAT_ROWS.map(([key, label]) => (
+            {STAT_ROWS.map(([key, labelKey]) => (
               <div key={key} style={{ display: "flex", alignItems: "center", padding: "6px 14px", borderTop: `1px solid ${t.border}` }}>
                 <span style={{ flex: 1, fontWeight: 700 }}>{stats.team1[key]}</span>
-                <span style={{ width: 120, textAlign: "center", fontSize: 11, color: t.textMuted, textTransform: "uppercase" }}>{label}</span>
+                <span style={{ width: 120, textAlign: "center", fontSize: 11, color: t.textMuted, textTransform: "uppercase" }}>{tr(labelKey)}</span>
                 <span style={{ flex: 1, textAlign: "right", fontWeight: 700 }}>{stats.team2[key]}</span>
               </div>
             ))}
             {avgRally != null && (
               <div style={{ display: "flex", justifyContent: "center", padding: "8px 14px", borderTop: `1px solid ${t.border}`, fontSize: 12, color: t.textSub }}>
-                Średnia długość wymiany: <strong style={{ marginLeft: 4 }}>{avgRally} uderzeń</strong>
+                {tr("summary.avgRallyLabel")} <strong style={{ marginLeft: 4 }}>{avgRally} {tr("summary.hitsUnit")}</strong>
               </div>
             )}
           </Card>
@@ -110,13 +112,13 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
           {match.status === "in_progress" && (
-            <button style={styles.primaryBtn} onClick={() => onContinue(match.id)}>▶️ Kontynuuj mecz</button>
+            <button style={styles.primaryBtn} onClick={() => onContinue(match.id)}>▶️ {tr("summary.continueMatch")}</button>
           )}
           <button
             style={{ ...styles.primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             onClick={() => shareMatch(`${name1} – ${name2}: ${setsRow.join(" ")}`, buildShareUrl(match, setsRow))}
-          >📤 Udostępnij wynik</button>
-          <button style={{ ...styles.secondaryBtn, color: t.danger }} onClick={handleDelete}>🗑️ Usuń mecz</button>
+          >📤 {tr("summary.shareResult")}</button>
+          <button style={{ ...styles.secondaryBtn, color: t.danger }} onClick={handleDelete}>🗑️ {tr("common.deleteMatch")}</button>
         </div>
       </ScrollBody>
     </FullScreen>

@@ -1,15 +1,16 @@
 // Tennis Tracker v0.2.0 — ekran zakładania nowego meczu / zapisu ręcznego wyniku.
 import { useState } from "react";
 import { useThemeCtx, SURFACES, themeForSurface } from "../theme.js";
+import { useLang, surfaceLabel } from "../i18n.js";
 import { Card, TopBar, FullScreen, ScrollBody } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { PRESETS, DEFAULT_PRESET_KEY } from "./scoringEngine.js";
 
 const DEPTHS = [
-  { key: "basic", title: "Podstawowy", desc: "Prosty licznik wyniku — dwa przyciski na jednym ekranie." },
-  { key: "intermediate", title: "Średni", desc: "Serwis (as/1. serwis/2. serwis/podwójny błąd) i wynik piłki (winner/wymuszony/niewymuszony błąd)." },
-  { key: "advanced", title: "Zaawansowany", desc: "Dodatkowo forehand/backhand, punkty przy siatce." },
-  { key: "advanced_rallies", title: "Zaawansowany z wymianami", desc: "Dodatkowo długość wymiany (liczba uderzeń)." },
+  { key: "basic", titleKey: "depth.basic.title", descKey: "depth.basic.desc" },
+  { key: "intermediate", titleKey: "depth.intermediate.title", descKey: "depth.intermediate.desc" },
+  { key: "advanced", titleKey: "depth.advanced.title", descKey: "depth.advanced.desc" },
+  { key: "advanced_rallies", titleKey: "depth.advancedRallies.title", descKey: "depth.advancedRallies.desc" },
 ];
 
 function TabBtn({ active, onClick, children }) {
@@ -29,6 +30,7 @@ function TabBtn({ active, onClick, children }) {
 // t), żeby od razu podpowiadał, na jaki kolor przebarwi się cała apka.
 function SurfaceTile({ surface, active, onClick }) {
   const { t } = useThemeCtx();
+  const { lang } = useLang();
   const stheme = themeForSurface(surface);
   return (
     <button onClick={onClick} style={{
@@ -38,7 +40,7 @@ function SurfaceTile({ surface, active, onClick }) {
       display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
     }}>
       <span style={{ width: 18, height: 18, borderRadius: "50%", background: stheme.accent, boxShadow: `0 0 10px ${stheme.accent}88` }} />
-      <span style={{ fontSize: 13, fontWeight: 800, color: active ? stheme.accent : t.text }}>{surface}</span>
+      <span style={{ fontSize: 13, fontWeight: 800, color: active ? stheme.accent : t.text }}>{surfaceLabel(lang, surface)}</span>
     </button>
   );
 }
@@ -47,6 +49,7 @@ function SurfaceTile({ surface, active, onClick }) {
 // reszty apki. Zaznaczony ma ramkę i haczyk w kolorze akcentu.
 function RulesTile({ preset, active, onClick }) {
   const { t } = useThemeCtx();
+  const { t: tr } = useLang();
   return (
     <button onClick={onClick} style={{
       width: "100%", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
@@ -55,15 +58,16 @@ function RulesTile({ preset, active, onClick }) {
       borderRadius: 12, padding: 14, marginBottom: 10,
     }}>
       <div style={{ fontSize: 15, fontWeight: 800, color: active ? t.accent : t.text }}>
-        {active ? "✓ " : ""}{preset.label}
+        {active ? "✓ " : ""}{tr(preset.labelKey)}
       </div>
-      <div style={{ fontSize: 12, color: t.textSub, marginTop: 6 }}>{preset.bullets.join(" · ")}</div>
+      <div style={{ fontSize: 12, color: t.textSub, marginTop: 6 }}>{preset.bulletKeys.map((k) => tr(k)).join(" · ")}</div>
     </button>
   );
 }
 
 function DepthPickerModal({ onPick, onClose }) {
   const { t } = useThemeCtx();
+  const { t: tr } = useLang();
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 400, background: t.overlay,
@@ -73,12 +77,12 @@ function DepthPickerModal({ onPick, onClose }) {
         background: t.bg, border: `1px solid ${t.border}`, borderRadius: 16,
         maxWidth: 420, width: "100%", maxHeight: "80vh", overflowY: "auto", padding: 20,
       }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Wybierz poziom śledzenia:</div>
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>{tr("setup.pickDepthTitle")}</div>
         {DEPTHS.map((d) => (
           <Card key={d.key} style={{ cursor: "pointer" }}>
             <div style={{ padding: 14 }} onClick={() => onPick(d.key)}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: t.secondarySoft }}>{d.title}</div>
-              <div style={{ fontSize: 13, color: t.textSub, marginTop: 4 }}>{d.desc}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: t.secondarySoft }}>{tr(d.titleKey)}</div>
+              <div style={{ fontSize: 13, color: t.textSub, marginTop: 4 }}>{tr(d.descKey)}</div>
             </div>
           </Card>
         ))}
@@ -89,6 +93,7 @@ function DepthPickerModal({ onPick, onClose }) {
 
 export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceChange }) {
   const { t, styles } = useThemeCtx();
+  const { lang, t: tr } = useLang();
   const isManual = mode === "manual";
   const [tab, setTab] = useState("players");
 
@@ -115,8 +120,8 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
   const [manualSets, setManualSets] = useState([{ a: "", b: "", tb: "", superTb: false }]);
   const [showDepthModal, setShowDepthModal] = useState(false);
 
-  const team1Names = () => [t1a.trim() || "Gracz 1", ...(isDoubles ? [t1b.trim() || "Gracz 1b"] : [])];
-  const team2Names = () => [t2a.trim() || "Gracz 2", ...(isDoubles ? [t2b.trim() || "Gracz 2b"] : [])];
+  const team1Names = () => [t1a.trim() || tr("common.player1"), ...(isDoubles ? [t1b.trim() || `${tr("common.player1")}b`] : [])];
+  const team2Names = () => [t2a.trim() || tr("common.player2"), ...(isDoubles ? [t2b.trim() || `${tr("common.player2")}b`] : [])];
 
   const baseData = () => ({
     team1: { names: team1Names() },
@@ -152,7 +157,7 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
         if (r.tb !== "") return { a, b, tiebreak: { a: a > b ? 7 : parseInt(r.tb, 10), b: a > b ? parseInt(r.tb, 10) : 7 } };
         return { a, b };
       });
-    if (finalSets.length === 0) { alert("Podaj wynik przynajmniej jednego seta"); return; }
+    if (finalSets.length === 0) { alert(tr("setup.alertNeedOneSet")); return; }
     const match = storage.createMatch({
       ...baseData(),
       rules: null,
@@ -166,7 +171,7 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
 
   return (
     <FullScreen>
-      <TopBar title={isManual ? "Zapisz wynik" : "Nowy mecz"} onBack={onCancel} />
+      <TopBar title={isManual ? tr("setup.titleManual") : tr("setup.titleNew")} onBack={onCancel} />
       <div style={{
         display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
         fontSize: 12, fontWeight: 700, color: surface ? t.accent : t.textMuted,
@@ -177,17 +182,17 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
           background: surface ? themeForSurface(surface).accent : t.textMuted,
           flexShrink: 0,
         }} />
-        {surface ? `Nawierzchnia: ${surface}` : "Nawierzchnia jeszcze nie wybrana (zakładka Gracze)"}
+        {surface ? tr("setup.surfaceLabel", { surface: surfaceLabel(lang, surface) }) : tr("setup.surfaceNotChosen")}
       </div>
       <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
-        <TabBtn active={tab === "players"} onClick={() => setTab("players")}>Gracze</TabBtn>
-        {!isManual && <TabBtn active={tab === "rules"} onClick={() => setTab("rules")}>Zasady</TabBtn>}
-        {isManual && <TabBtn active={tab === "wynik"} onClick={() => setTab("wynik")}>Wynik</TabBtn>}
+        <TabBtn active={tab === "players"} onClick={() => setTab("players")}>{tr("setup.tabPlayers")}</TabBtn>
+        {!isManual && <TabBtn active={tab === "rules"} onClick={() => setTab("rules")}>{tr("setup.tabRules")}</TabBtn>}
+        {isManual && <TabBtn active={tab === "wynik"} onClick={() => setTab("wynik")}>{tr("setup.tabResult")}</TabBtn>}
       </div>
       <ScrollBody style={{ padding: 16 }}>
         {tab === "players" && (
           <>
-            <span style={styles.label}>Nawierzchnia</span>
+            <span style={styles.label}>{tr("setup.surface")}</span>
             <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
               {SURFACES.map((s) => (
                 <SurfaceTile key={s} surface={s} active={surface === s} onClick={() => handleSurfaceChange(surface === s ? null : s)} />
@@ -195,24 +200,24 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
             </div>
             <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: t.text }}>
-                <input type="checkbox" checked={isDoubles} onChange={(e) => setIsDoubles(e.target.checked)} /> Debel
+                <input type="checkbox" checked={isDoubles} onChange={(e) => setIsDoubles(e.target.checked)} /> {tr("setup.doubles")}
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: t.textMuted }} title="Niedostępne w tej wersji">
-                <input type="checkbox" checked={isTeamEvent} disabled onChange={() => {}} /> Mecz drużynowy (wkrótce)
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: t.textMuted }} title={tr("setup.teamEventTooltip")}>
+                <input type="checkbox" checked={isTeamEvent} disabled onChange={() => {}} /> {tr("setup.teamEvent")}
               </label>
             </div>
-            <span style={styles.label}>Gracz / drużyna 1</span>
-            <input style={{ ...styles.input, marginBottom: isDoubles ? 8 : 16 }} value={t1a} onChange={(e) => setT1a(e.target.value)} placeholder="Imię i nazwisko" />
-            {isDoubles && <input style={{ ...styles.input, marginBottom: 16 }} value={t1b} onChange={(e) => setT1b(e.target.value)} placeholder="Partner/ka" />}
-            <span style={styles.label}>Gracz / drużyna 2</span>
-            <input style={{ ...styles.input, marginBottom: isDoubles ? 8 : 16 }} value={t2a} onChange={(e) => setT2a(e.target.value)} placeholder="Imię i nazwisko" />
-            {isDoubles && <input style={styles.input} value={t2b} onChange={(e) => setT2b(e.target.value)} placeholder="Partner/ka" />}
+            <span style={styles.label}>{tr("setup.team1")}</span>
+            <input style={{ ...styles.input, marginBottom: isDoubles ? 8 : 16 }} value={t1a} onChange={(e) => setT1a(e.target.value)} placeholder={tr("common.fullName")} />
+            {isDoubles && <input style={{ ...styles.input, marginBottom: 16 }} value={t1b} onChange={(e) => setT1b(e.target.value)} placeholder={tr("common.partner")} />}
+            <span style={styles.label}>{tr("setup.team2")}</span>
+            <input style={{ ...styles.input, marginBottom: isDoubles ? 8 : 16 }} value={t2a} onChange={(e) => setT2a(e.target.value)} placeholder={tr("common.fullName")} />
+            {isDoubles && <input style={styles.input} value={t2b} onChange={(e) => setT2b(e.target.value)} placeholder={tr("common.partner")} />}
           </>
         )}
 
         {tab === "rules" && !isManual && (
           <>
-            <span style={styles.label}>Zasady meczu</span>
+            <span style={styles.label}>{tr("setup.rulesLabel")}</span>
             {Object.values(PRESETS).map((p) => (
               <RulesTile key={p.key} preset={p} active={p.key === presetKey} onClick={() => setPresetKey(p.key)} />
             ))}
@@ -223,27 +228,27 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
           <>
             {manualSets.map((row, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, color: t.textMuted, width: 40 }}>Set {i + 1}</span>
+                <span style={{ fontSize: 12, color: t.textMuted, width: 40 }}>{tr("common.setLabel", { n: i + 1 })}</span>
                 <input style={{ ...styles.input, width: 56, textAlign: "center" }} type="number" value={row.a} onChange={(e) => updateManualSet(i, { a: e.target.value })} placeholder="0" />
                 <span>–</span>
                 <input style={{ ...styles.input, width: 56, textAlign: "center" }} type="number" value={row.b} onChange={(e) => updateManualSet(i, { b: e.target.value })} placeholder="0" />
                 {!row.superTb && (
-                  <input style={{ ...styles.input, width: 56, textAlign: "center" }} type="number" value={row.tb} onChange={(e) => updateManualSet(i, { tb: e.target.value })} placeholder="TB" title="Punkty przegranego w tie-breaku (opcjonalnie)" />
+                  <input style={{ ...styles.input, width: 56, textAlign: "center" }} type="number" value={row.tb} onChange={(e) => updateManualSet(i, { tb: e.target.value })} placeholder={tr("setup.tbPlaceholder")} title={tr("setup.tbTitle")} />
                 )}
                 <button onClick={() => removeManualSet(i)} style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer", fontSize: 16 }}>✕</button>
               </div>
             ))}
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.textSub, marginBottom: 12 }}>
               <input type="checkbox" checked={manualSets[manualSets.length - 1]?.superTb || false} onChange={(e) => updateManualSet(manualSets.length - 1, { superTb: e.target.checked })} />
-              Ostatni set to super tie-break (wpisz punkty zamiast gemów)
+              {tr("setup.superTbCheckbox")}
             </label>
-            {manualSets.length < 5 && <button style={styles.secondaryBtn} onClick={addManualSet}>+ Dodaj seta</button>}
+            {manualSets.length < 5 && <button style={styles.secondaryBtn} onClick={addManualSet}>{tr("setup.addSet")}</button>}
           </>
         )}
       </ScrollBody>
       <div style={{ padding: "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))", flexShrink: 0, borderTop: `1px solid ${t.border}` }}>
         <button style={styles.primaryBtn} onClick={() => (isManual ? handleSaveManual() : setShowDepthModal(true))}>
-          {isManual ? "Zapisz wynik" : "Rozpocznij śledzenie"}
+          {isManual ? tr("setup.titleManual") : tr("setup.startTracking")}
         </button>
       </div>
       {showDepthModal && <DepthPickerModal onPick={handleTrackConfirm} onClose={() => setShowDepthModal(false)} />}

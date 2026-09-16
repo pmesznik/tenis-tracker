@@ -4,6 +4,7 @@
 // trackera (duże przyciski akcji, karta, pasek górny).
 // ─────────────────────────────────────────────────────────────────────────────
 import { useThemeCtx } from "../theme.js";
+import { useLang } from "../i18n.js";
 
 // Ikonka piłki tenisowej narysowana w SVG — stałe, spójne renderowanie na
 // każdym urządzeniu (emoji 🎾 wygląda różnie zależnie od systemu/producenta,
@@ -20,6 +21,7 @@ export function TennisBall({ size = 14 }) {
 
 export function TopBar({ title, onBack, right }) {
   const { t } = useThemeCtx();
+  const { t: tr } = useLang();
   return (
     <div style={{
       flexShrink: 0, background: t.navBg, backdropFilter: "blur(12px)",
@@ -32,7 +34,7 @@ export function TopBar({ title, onBack, right }) {
           fontSize: 13, fontWeight: 800, color: t.accent,
           background: "none", border: "none", cursor: "pointer",
           fontFamily: "inherit", flexShrink: 0, padding: 0,
-        }}>← Wróć</button>
+        }}>← {tr("common.back")}</button>
       )}
       <span style={{
         fontSize: 15, fontWeight: 700, color: t.text, flex: 1,

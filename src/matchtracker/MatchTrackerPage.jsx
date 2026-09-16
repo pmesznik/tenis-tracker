@@ -1,6 +1,7 @@
 // Tennis Tracker v0.2.0 — ekran śledzenia meczu na żywo.
 import { useState, useEffect } from "react";
 import { useThemeCtx } from "../theme.js";
+import { useLang } from "../i18n.js";
 import { TopBar, FullScreen, BigButton, Chip, ScoreTile, TennisBall } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, otherTeam, TEAM1, TEAM2 } from "./scoringEngine.js";
@@ -27,6 +28,7 @@ function buildLivePayload(match, score) {
 
 export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfaceChange }) {
   const { t } = useThemeCtx();
+  const { t: tr } = useLang();
   const [match, setMatch] = useState(() => storage.getMatch(matchId));
   const [stage, setStage] = useState(INITIAL_STAGE);
 
@@ -38,15 +40,15 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   if (!match) {
     return (
       <FullScreen>
-        <TopBar title="Mecz nie znaleziony" onBack={onBack} />
+        <TopBar title={tr("common.matchNotFound")} onBack={onBack} />
       </FullScreen>
     );
   }
 
   const rules = match.rules;
   const score = computeScore(rules, match.pointLog, match.initialServer || TEAM1);
-  const name1 = teamLabel(TEAM1, match.team1.names, match.team2.names);
-  const name2 = teamLabel(TEAM2, match.team1.names, match.team2.names);
+  const name1 = teamLabel(TEAM1, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
+  const name2 = teamLabel(TEAM2, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
 
   const persist = (newLog, extraPatch = {}) => {
     const newScore = computeScore(rules, newLog, match.initialServer || TEAM1);
@@ -74,17 +76,17 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       setMatch(m);
     }
     publishLiveScore(m.id, buildLivePayload(m, computeScore(rules, m.pointLog, m.initialServer || TEAM1)));
-    shareMatch(`${name1} – ${name2}: śledź mecz na żywo`, buildLiveShareUrl(m.id));
+    shareMatch(`${name1} – ${name2}`, buildLiveShareUrl(m.id));
   };
 
   const liveShareButton = (
-    <button onClick={handleShareLive} title="Udostępnij na żywo" style={{
+    <button onClick={handleShareLive} title={tr("tracker.shareLiveTitle")} style={{
       background: match.liveShareEnabled ? `${t.danger}22` : t.surfaceElevated,
       border: `1px solid ${match.liveShareEnabled ? t.danger : t.borderStrong}`,
       color: match.liveShareEnabled ? t.danger : t.textSub,
       borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 800,
       cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
-    }}>🔴 Na żywo</button>
+    }}>🔴 {tr("tracker.liveButton")}</button>
   );
 
   const commitPoint = (winner, extra = {}) => {
@@ -103,17 +105,17 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       <FullScreen>
         <TopBar title={`${name1} vs. ${name2}`} onBack={onBack} />
         <div style={{ padding: 16, textAlign: "center", fontSize: 15, fontWeight: 700, color: t.textSub }}>
-          Kto zaczyna serwis?
+          {tr("tracker.whoServes")}
         </div>
         <div style={{ flex: 1, display: "flex", gap: 2, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <button onClick={() => handleSelectServer(TEAM1)} style={{
             flex: 1, background: t.secondary, color: "#fff", border: "none",
             fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          }}>{name1}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>serwuje</span></button>
+          }}>{name1}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
           <button onClick={() => handleSelectServer(TEAM2)} style={{
             flex: 1, background: t.secondarySoft, color: "#111144", border: "none",
             fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          }}>{name2}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>serwuje</span></button>
+          }}>{name2}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
         </div>
       </FullScreen>
     );
@@ -158,21 +160,25 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       </div>
       {(score.game?.isTiebreak || score.isMatchPoint) && (
         <div style={{ textAlign: "center", marginTop: 8 }}>
-          {score.game?.isTiebreak && <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", color: t.textMuted }}>TIE-BREAK</span>}
-          {score.isMatchPoint && <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", color: t.danger, marginLeft: 8 }}>PIŁKA MECZOWA</span>}
+          {score.game?.isTiebreak && <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", color: t.textMuted }}>{tr("tracker.tiebreakBadge")}</span>}
+          {score.isMatchPoint && <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.05em", color: t.danger, marginLeft: 8 }}>{tr("tracker.matchPointBadge")}</span>}
         </div>
       )}
     </div>
   );
 
   const isBasic = match.trackingDepth === "basic";
+  const stageLabel = stage.name === "serve1" ? tr("tracker.stage.serve1")
+    : stage.name === "serve2" ? tr("tracker.stage.serve2")
+    : stage.name === "rally" ? tr("tracker.stage.rally")
+    : tr("tracker.stage.pointEnd");
   const TopRow = (
     <div style={{ display: "flex", alignItems: "center", padding: "6px 14px", justifyContent: "space-between" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {liveShareButton}
         {!isBasic && (
           <span style={{ fontSize: 12, fontWeight: 800, color: t.textMuted, textTransform: "uppercase" }}>
-            {stage.name === "serve1" ? "1. Serwis" : stage.name === "serve2" ? "2. Serwis" : stage.name === "rally" ? "Wymiana" : "Wynik piłki"}
+            {stageLabel}
           </span>
         )}
       </div>
@@ -181,7 +187,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
         color: match.pointLog.length ? t.accent : t.textMuted, borderRadius: 8, padding: "6px 12px",
         fontWeight: 800, fontSize: 12, cursor: match.pointLog.length ? "pointer" : "default", fontFamily: "inherit",
         display: "flex", alignItems: "center", gap: 5,
-      }}>↩ Cofnij</button>
+      }}>↩ {tr("common.undo")}</button>
     </div>
   );
 
@@ -196,8 +202,8 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
         {Header}
         {TopRow}
         <div style={{ flex: 1, minHeight: 0, padding: 16, display: "flex", flexDirection: "row", gap: 12 }}>
-          <BigButton label={`Punkt:\n${name1}`} color={t.secondary} onClick={() => commitPoint(TEAM1)} style={{ flex: 1, minHeight: 0, height: "100%" }} />
-          <BigButton label={`Punkt:\n${name2}`} color={t.secondarySoft} onClick={() => commitPoint(TEAM2)} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.pointFor", { name: name1 })} color={t.secondary} onClick={() => commitPoint(TEAM1)} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.pointFor", { name: name2 })} color={t.secondarySoft} onClick={() => commitPoint(TEAM2)} style={{ flex: 1, minHeight: 0, height: "100%" }} />
         </div>
       </FullScreen>
     );
@@ -240,30 +246,30 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
     body = (
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 12, padding: 16 }}>
         <div style={{ flex: 1, display: "flex", gap: 12 }}>
-          <BigButton label="As" onClick={() => handleAce("1st")} color={t.success} style={{ flex: 1, minHeight: 0, height: "100%" }} />
-          <BigButton label="Błąd serwisu" onClick={handleFault1} color="#7a7fb0" style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.ace")} onClick={() => handleAce("1st")} color={t.success} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.serveFault")} onClick={handleFault1} color="#7a7fb0" style={{ flex: 1, minHeight: 0, height: "100%" }} />
         </div>
-        <BigButton label="Piłka w grze" onClick={() => handleBallInPlay("1st")} color={t.secondary} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+        <BigButton label={tr("tracker.ballInPlay")} onClick={() => handleBallInPlay("1st")} color={t.secondary} style={{ flex: 1, minHeight: 0, height: "100%" }} />
       </div>
     );
   } else if (stage.name === "serve2") {
     body = (
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 12, padding: 16 }}>
         <div style={{ flex: 1, display: "flex", gap: 12 }}>
-          <BigButton label="Winner z returnu" onClick={() => handleReturnWinner("2nd")} color={t.secondarySoft} style={{ flex: 1, minHeight: 0, height: "100%" }} />
-          <BigButton label="As" onClick={() => handleAce("2nd")} color={t.success} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.returnWinner")} onClick={() => handleReturnWinner("2nd")} color={t.secondarySoft} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.ace")} onClick={() => handleAce("2nd")} color={t.success} style={{ flex: 1, minHeight: 0, height: "100%" }} />
         </div>
         <div style={{ flex: 1, display: "flex", gap: 12 }}>
-          <BigButton label="Błąd returnu" onClick={() => handleReturnError("2nd")} color="#7a7fb0" style={{ flex: 1, minHeight: 0, height: "100%" }} />
-          <BigButton label="Podwójny błąd" onClick={handleDoubleFault} color={t.danger} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.returnError")} onClick={() => handleReturnError("2nd")} color="#7a7fb0" style={{ flex: 1, minHeight: 0, height: "100%" }} />
+          <BigButton label={tr("tracker.doubleFault")} onClick={handleDoubleFault} color={t.danger} style={{ flex: 1, minHeight: 0, height: "100%" }} />
         </div>
-        <BigButton label="Piłka w grze" onClick={() => handleBallInPlay("2nd")} color={t.secondary} style={{ flex: 1, minHeight: 0, height: "100%" }} />
+        <BigButton label={tr("tracker.ballInPlay")} onClick={() => handleBallInPlay("2nd")} color={t.secondary} style={{ flex: 1, minHeight: 0, height: "100%" }} />
       </div>
     );
   } else if (stage.name === "rally") {
     body = (
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
-        <div style={{ fontSize: 13, color: t.textSub }}>Liczba uderzeń w wymianie</div>
+        <div style={{ fontSize: 13, color: t.textSub }}>{tr("tracker.rallyCountLabel")}</div>
         <div style={{ fontSize: 64, fontWeight: 800, color: t.accent }}>{stage.rallyCount}</div>
         <button onClick={() => setStage((s) => ({ ...s, rallyCount: s.rallyCount + 1 }))} style={{
           width: 120, height: 120, borderRadius: "50%", border: "none",
@@ -272,31 +278,31 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
         <button onClick={() => setStage((s) => ({ ...s, name: "point-end" }))} style={{
           background: "none", border: `1px solid ${t.borderStrong}`, color: t.text,
           borderRadius: 10, padding: "10px 20px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-        }}>Dalej →</button>
+        }}>{tr("common.next")}</button>
       </div>
     );
   } else if (stage.name === "point-end") {
     const isAdvanced = match.trackingDepth === "advanced" || match.trackingDepth === "advanced_rallies";
     const ROWS = [
-      { key: "winner", label: "Winner", color: t.success },
-      { key: "forcedError", label: "Wymuszony błąd", color: "#7a7fb0" },
-      { key: "unforcedError", label: "Niewymuszony błąd", color: t.danger },
+      { key: "winner", label: tr("tracker.winner"), color: t.success },
+      { key: "forcedError", label: tr("tracker.forcedError"), color: "#7a7fb0" },
+      { key: "unforcedError", label: tr("tracker.unforcedError"), color: t.danger },
     ];
     body = (
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 10, padding: 16 }}>
         {isAdvanced && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
             <div style={{ display: "flex", gap: 8 }}>
-              <Chip label="Forhend" active={stage.shotType === "forehand"} onClick={() => setStage((s) => ({ ...s, shotType: "forehand" }))} />
-              <Chip label="Bekhend" active={stage.shotType === "backhand"} onClick={() => setStage((s) => ({ ...s, shotType: "backhand" }))} />
+              <Chip label={tr("tracker.forehand")} active={stage.shotType === "forehand"} onClick={() => setStage((s) => ({ ...s, shotType: "forehand" }))} />
+              <Chip label={tr("tracker.backhand")} active={stage.shotType === "backhand"} onClick={() => setStage((s) => ({ ...s, shotType: "backhand" }))} />
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Chip label="Przy siatce" active={stage.atNet} onClick={() => setStage((s) => ({ ...s, atNet: !s.atNet }))} color={t.secondarySoft} />
-              <Chip label="Z linii końcowej" active={!stage.atNet} onClick={() => setStage((s) => ({ ...s, atNet: false }))} color={t.secondarySoft} />
+              <Chip label={tr("tracker.atNet")} active={stage.atNet} onClick={() => setStage((s) => ({ ...s, atNet: !s.atNet }))} color={t.secondarySoft} />
+              <Chip label={tr("tracker.baseline")} active={!stage.atNet} onClick={() => setStage((s) => ({ ...s, atNet: false }))} color={t.secondarySoft} />
             </div>
           </div>
         )}
-        <div style={{ fontSize: 11, fontWeight: 800, color: t.textMuted, textTransform: "uppercase", flexShrink: 0 }}>Punkt zakończony przez:</div>
+        <div style={{ fontSize: 11, fontWeight: 800, color: t.textMuted, textTransform: "uppercase", flexShrink: 0 }}>{tr("tracker.pointEndedBy")}</div>
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           {ROWS.map((row) => (
             <div key={row.key} style={{ flex: 1, display: "flex", gap: 8 }}>

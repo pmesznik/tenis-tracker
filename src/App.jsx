@@ -1,11 +1,28 @@
 // Tennis Tracker v0.2.0 — główny komponent aplikacji.
 import { useState, useMemo } from "react";
 import { ThemeContext, themeForSurface, makeStyles } from "./theme.js";
+import { LangContext, getStoredLang, setStoredLang, translate } from "./i18n.js";
 import { APP_NAME, APP_VERSION } from "./version.js";
 import MatchListPage from "./matchtracker/MatchListPage.jsx";
 import MatchSetupPage from "./matchtracker/MatchSetupPage.jsx";
 import MatchTrackerPage from "./matchtracker/MatchTrackerPage.jsx";
 import MatchSummaryPage from "./matchtracker/MatchSummaryPage.jsx";
+
+// Ekran przy pierwszym uruchomieniu — wybór języka jest jawny (nie zgadujemy
+// z ustawień systemu), żeby uniknąć niespodzianek. Zapamiętany w localStorage,
+// da się później zmienić małą flagą w górnym pasku.
+function LanguagePickerScreen({ t, styles, onPick }) {
+  return (
+    <div style={{ ...styles.app, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: 24 }}>
+      <span style={{ fontSize: 40 }}>🎾</span>
+      <span style={{ fontSize: 18, fontWeight: 800, color: t.text }}>Wybierz język / Choose language</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 280 }}>
+        <button style={styles.primaryBtn} onClick={() => onPick("pl")}>🇵🇱 Polski</button>
+        <button style={styles.secondaryBtn} onClick={() => onPick("en")}>🇬🇧 English</button>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   // Kolor całej aplikacji zależy od nawierzchni aktualnie zakładanego/oglądanego
@@ -15,6 +32,13 @@ export default function App() {
   const styles = useMemo(() => makeStyles(t), [t]);
   const ctx = useMemo(() => ({ t, styles }), [t, styles]);
 
+  const [lang, setLang] = useState(() => getStoredLang());
+  const langCtx = useMemo(() => ({
+    lang: lang || "pl",
+    setLang: (l) => { setStoredLang(l); setLang(l); },
+    t: (key, vars) => translate(lang || "pl", key, vars),
+  }), [lang]);
+
   const [view, setView] = useState({ name: "list" });
   const [listVersion, setListVersion] = useState(0);
   const goToList = () => {
@@ -23,8 +47,23 @@ export default function App() {
     setActiveSurface(null);
   };
 
+  if (!lang) {
+    return (
+      <ThemeContext.Provider value={ctx}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&display=swap');
+          * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+          html, body { height: 100%; }
+          body { background: ${t.bg}; background-image: ${t.bgGradient}; background-attachment: fixed; background-size: cover; }
+        `}</style>
+        <LanguagePickerScreen t={t} styles={styles} onPick={langCtx.setLang} />
+      </ThemeContext.Provider>
+    );
+  }
+
   return (
     <ThemeContext.Provider value={ctx}>
+      <LangContext.Provider value={langCtx}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -45,6 +84,16 @@ export default function App() {
           <>
             <nav style={styles.nav}>
               <span style={styles.navTitle}>🎾 {APP_NAME}</span>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <button onClick={() => langCtx.setLang("pl")} title="Polski" style={{
+                  background: "none", border: "none", cursor: "pointer", fontSize: 18,
+                  opacity: langCtx.lang === "pl" ? 1 : 0.35, padding: 4, lineHeight: 1,
+                }}>🇵🇱</button>
+                <button onClick={() => langCtx.setLang("en")} title="English" style={{
+                  background: "none", border: "none", cursor: "pointer", fontSize: 18,
+                  opacity: langCtx.lang === "en" ? 1 : 0.35, padding: 4, lineHeight: 1,
+                }}>🇬🇧</button>
+              </div>
             </nav>
             <MatchListPage
               key={listVersion}
@@ -89,6 +138,7 @@ export default function App() {
           />
         )}
       </div>
+      </LangContext.Provider>
     </ThemeContext.Provider>
   );
 }
