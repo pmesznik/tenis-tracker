@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useThemeCtx } from "../theme.js";
 import { useLang, surfaceLabel } from "../i18n.js";
-import { TopBar, FullScreen, ScrollBody, Card } from "./ui.jsx";
+import { TopBar, FullScreen, ScrollBody, Card, ShareIcon } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildShareUrl } from "./shareLink.js";
@@ -164,7 +164,7 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
           <button
             style={{ ...styles.primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             onClick={() => shareMatch(`${name1} – ${name2}: ${setsRow.join(" ")}`, buildShareUrl(match, setsRow))}
-          >📤 {tr("summary.shareResult")}</button>
+          ><ShareIcon size={15} /> {tr("summary.shareResult")}</button>
           <button style={{ ...styles.secondaryBtn, color: t.danger }} onClick={handleDelete}>🗑️ {tr("common.deleteMatch")}</button>
         </div>
       </ScrollBody>

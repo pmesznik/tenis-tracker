@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useThemeCtx } from "../theme.js";
 import { useLang, surfaceLabel } from "../i18n.js";
-import { Card } from "./ui.jsx";
+import { Card, ShareIcon } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, buildSetRow, teamLabel } from "./scoringEngine.js";
 import { shareMatch, buildShareUrl } from "./shareLink.js";
@@ -50,9 +50,9 @@ function MatchCard({ match, onOpen, onDelete }) {
                 e.stopPropagation();
                 shareMatch(`${name1} – ${name2}: ${sets.join(" ")}`, buildShareUrl(match, sets));
               }}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.textSub }}
+              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", color: t.textSub }}
               title={tr("common.share")}
-            >🔗</button>
+            ><ShareIcon size={16} /></button>
             <button
               onClick={(e) => { e.stopPropagation(); if (confirm(tr("common.confirmDeleteMatch"))) onDelete(match.id); }}
               style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: t.textSub }}

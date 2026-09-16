@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useThemeCtx } from "../theme.js";
 import { useLang } from "../i18n.js";
-import { TopBar, FullScreen, BigButton, Chip, ScoreTile, TennisBall, ClockChip } from "./ui.jsx";
+import { TopBar, FullScreen, BigButton, Chip, ScoreTile, TennisBall, ClockChip, ShareIcon } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, otherTeam, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildLiveShareUrl } from "./shareLink.js";
@@ -98,7 +98,10 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       color: match.liveShareEnabled ? t.danger : t.textSub,
       borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 800,
       cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
-    }}>{match.liveShareEnabled ? `🔴 ${tr("tracker.liveButton")}` : `📤 ${tr("tracker.shareLiveButton")}`}</button>
+      display: "flex", alignItems: "center", gap: 5,
+    }}>
+      {match.liveShareEnabled ? <>🔴 {tr("tracker.liveButton")}</> : <><ShareIcon /> {tr("tracker.shareLiveButton")}</>}
+    </button>
   );
 
   const commitPoint = (winner, extra = {}) => {
