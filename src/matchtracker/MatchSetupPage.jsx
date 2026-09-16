@@ -1,10 +1,11 @@
 // Tennis Tracker v0.2.0 — ekran zakładania nowego meczu / zapisu ręcznego wyniku.
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useThemeCtx, SURFACES, themeForSurface } from "../theme.js";
 import { useLang, surfaceLabel } from "../i18n.js";
-import { Card, TopBar, FullScreen, ScrollBody } from "./ui.jsx";
+import { Card, TopBar, FullScreen, ScrollBody, Chip } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { PRESETS, DEFAULT_PRESET_KEY } from "./scoringEngine.js";
+import { buildPlayerIndex, suggestOpponents, getFavoritePlayers, toggleFavoritePlayer } from "./players.js";
 
 const DEPTHS = [
   { key: "basic", titleKey: "depth.basic.title", descKey: "depth.basic.desc" },
@@ -65,6 +66,54 @@ function RulesTile({ preset, active, onClick }) {
   );
 }
 
+// Pole nazwiska z gwiazdką ulubionego, chipami ulubionych (wypełniają to
+// pole jednym dotknięciem) i podpowiedziami przeciwników wyliczonymi z
+// historii meczów tego akurat gracza (drugie pole).
+function NameField({ label, value, onChange, favorites, onToggleFavorite, suggestions, placeholder, listId }) {
+  const { t, styles } = useThemeCtx();
+  const { t: tr } = useLang();
+  const isFav = favorites.includes(value.trim());
+  return (
+    <>
+      <span style={styles.label}>{label}</span>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <input
+          style={{ ...styles.input, flex: 1, minWidth: 0 }} value={value} list={listId}
+          onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        />
+        <button
+          onClick={() => onToggleFavorite(value)} disabled={!value.trim()}
+          title={tr("setup.favoriteToggle")}
+          style={{
+            width: 44, flexShrink: 0, borderRadius: 10, border: `1px solid ${t.borderStrong}`,
+            background: t.surfaceElevated, color: isFav ? t.accent : t.textMuted,
+            fontSize: 18, cursor: value.trim() ? "pointer" : "default", opacity: value.trim() ? 1 : 0.5,
+          }}
+        >{isFav ? "★" : "☆"}</button>
+      </div>
+      <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+        {favorites.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {favorites.map((name) => (
+              <Chip key={name} label={`★ ${name}`} active={value.trim() === name} onClick={() => onChange(name)} />
+            ))}
+          </div>
+        )}
+        {suggestions.length > 0 && (
+          <div>
+            <span style={{ fontSize: 11, color: t.textMuted, display: "block", marginBottom: 6 }}>{tr("setup.playedBefore")}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {suggestions.map((name) => (
+                <Chip key={name} label={name} active={value.trim() === name} onClick={() => onChange(name)} color={t.secondarySoft} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function DepthPickerModal({ onPick, onClose }) {
   const { t } = useThemeCtx();
   const { t: tr } = useLang();
@@ -119,6 +168,13 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
 
   const [manualSets, setManualSets] = useState([{ a: "", b: "", tb: "", superTb: false }]);
   const [showDepthModal, setShowDepthModal] = useState(false);
+
+  // Indeks graczy (wszystkie znane nazwiska + z kim kto grał) liczony raz z
+  // historii meczów — ten sam pure-derive wzorzec co computeScore(), żadnego
+  // osobnego stanu do synchronizowania.
+  const playerIndex = useMemo(() => buildPlayerIndex(storage.listMatches()), []);
+  const [favorites, setFavorites] = useState(() => getFavoritePlayers());
+  const handleToggleFavorite = (name) => setFavorites(toggleFavoritePlayer(name));
 
   const team1Names = () => [t1a.trim() || tr("common.player1"), ...(isDoubles ? [t1b.trim() || `${tr("common.player1")}b`] : [])];
   const team2Names = () => [t2a.trim() || tr("common.player2"), ...(isDoubles ? [t2b.trim() || `${tr("common.player2")}b`] : [])];
@@ -206,12 +262,25 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
                 <input type="checkbox" checked={isTeamEvent} disabled onChange={() => {}} /> {tr("setup.teamEvent")}
               </label>
             </div>
-            <span style={styles.label}>{tr("setup.team1")}</span>
-            <input style={{ ...styles.input, marginBottom: isDoubles ? 8 : 16 }} value={t1a} onChange={(e) => setT1a(e.target.value)} placeholder={tr("common.fullName")} />
-            {isDoubles && <input style={{ ...styles.input, marginBottom: 16 }} value={t1b} onChange={(e) => setT1b(e.target.value)} placeholder={tr("common.partner")} />}
-            <span style={styles.label}>{tr("setup.team2")}</span>
-            <input style={{ ...styles.input, marginBottom: isDoubles ? 8 : 16 }} value={t2a} onChange={(e) => setT2a(e.target.value)} placeholder={tr("common.fullName")} />
-            {isDoubles && <input style={styles.input} value={t2b} onChange={(e) => setT2b(e.target.value)} placeholder={tr("common.partner")} />}
+            <datalist id="known-players">
+              {playerIndex.allNames.map((n) => <option key={n} value={n} />)}
+            </datalist>
+
+            <NameField
+              label={tr("setup.team1")} value={t1a} onChange={setT1a}
+              favorites={favorites} onToggleFavorite={handleToggleFavorite}
+              suggestions={suggestOpponents(playerIndex, t2a)}
+              placeholder={tr("common.fullName")} listId="known-players"
+            />
+            {isDoubles && <input style={{ ...styles.input, marginBottom: 16 }} value={t1b} onChange={(e) => setT1b(e.target.value)} placeholder={tr("common.partner")} list="known-players" />}
+
+            <NameField
+              label={tr("setup.team2")} value={t2a} onChange={setT2a}
+              favorites={favorites} onToggleFavorite={handleToggleFavorite}
+              suggestions={suggestOpponents(playerIndex, t1a)}
+              placeholder={tr("common.fullName")} listId="known-players"
+            />
+            {isDoubles && <input style={styles.input} value={t2b} onChange={(e) => setT2b(e.target.value)} placeholder={tr("common.partner")} list="known-players" />}
           </>
         )}
 
