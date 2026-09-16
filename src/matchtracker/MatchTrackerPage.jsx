@@ -98,7 +98,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       color: match.liveShareEnabled ? t.danger : t.textSub,
       borderRadius: 8, padding: "6px 10px", fontSize: 11, fontWeight: 800,
       cursor: "pointer", fontFamily: "inherit", flexShrink: 0, whiteSpace: "nowrap",
-    }}>🔴 {tr("tracker.liveButton")}</button>
+    }}>{match.liveShareEnabled ? `🔴 ${tr("tracker.liveButton")}` : `📤 ${tr("tracker.shareLiveButton")}`}</button>
   );
 
   const commitPoint = (winner, extra = {}) => {
