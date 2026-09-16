@@ -77,3 +77,9 @@ export function deleteMatch(id) {
   const all = listMatches().filter((m) => m.id !== id);
   saveAll(all);
 }
+
+// Nadpisuje całą listę meczów naraz — używane przy imporcie kopii zapasowej
+// (backup.js), gdzie scalanie robi wywołujący i przekazuje już gotową listę.
+export function replaceAllMatches(matches) {
+  saveAll(matches);
+}

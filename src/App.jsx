@@ -7,6 +7,7 @@ import MatchListPage from "./matchtracker/MatchListPage.jsx";
 import MatchSetupPage from "./matchtracker/MatchSetupPage.jsx";
 import MatchTrackerPage from "./matchtracker/MatchTrackerPage.jsx";
 import MatchSummaryPage from "./matchtracker/MatchSummaryPage.jsx";
+import BackupModal from "./matchtracker/BackupModal.jsx";
 
 // Ekran przy pierwszym uruchomieniu — wybór języka jest jawny (nie zgadujemy
 // z ustawień systemu), żeby uniknąć niespodzianek. Zapamiętany w localStorage,
@@ -41,6 +42,7 @@ export default function App() {
 
   const [view, setView] = useState({ name: "list" });
   const [listVersion, setListVersion] = useState(0);
+  const [showBackup, setShowBackup] = useState(false);
   const goToList = () => {
     setView({ name: "list" });
     setListVersion((v) => v + 1);
@@ -88,7 +90,11 @@ export default function App() {
           <>
             <nav style={styles.nav}>
               <span style={styles.navTitle}>🎾 {APP_NAME}</span>
-              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>
+                <button onClick={() => setShowBackup(true)} title={langCtx.t("backup.iconTitle")} style={{
+                  background: "none", border: "none", cursor: "pointer", fontSize: 17,
+                  color: t.textMuted, padding: 4, lineHeight: 1,
+                }}>💾</button>
                 <button onClick={() => langCtx.setLang("pl")} title="Polski" style={{
                   background: "none", border: "none", cursor: "pointer", fontSize: 18,
                   opacity: langCtx.lang === "pl" ? 1 : 0.35, padding: 4, lineHeight: 1,
@@ -142,6 +148,12 @@ export default function App() {
           />
         )}
       </div>
+      {showBackup && (
+        <BackupModal
+          onClose={() => setShowBackup(false)}
+          onImported={() => setListVersion((v) => v + 1)}
+        />
+      )}
       </LangContext.Provider>
     </ThemeContext.Provider>
   );

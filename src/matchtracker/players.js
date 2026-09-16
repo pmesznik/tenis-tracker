@@ -25,6 +25,12 @@ function saveFavorites(list) {
   } catch {}
 }
 
+// Używane przy imporcie kopii zapasowej (backup.js) do zapisania scalonej
+// listy ulubionych naraz.
+export function setFavoritePlayers(list) {
+  saveFavorites(Array.isArray(list) ? list.filter((n) => typeof n === "string" && n) : []);
+}
+
 export function isFavoritePlayer(name) {
   return getFavoritePlayers().includes(name);
 }

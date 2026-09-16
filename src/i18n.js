@@ -136,6 +136,15 @@ const dict = {
     "lang.pick.title": "Wybierz język",
     "lang.pl": "Polski",
     "lang.en": "English",
+
+    "backup.iconTitle": "Kopia zapasowa (eksport/import)",
+    "backup.title": "Kopia zapasowa",
+    "backup.hint": "Zapisz historię meczów do pliku przed zmianą telefonu albo wczytaj wcześniej zapisany plik.",
+    "backup.export": "Eksportuj do pliku",
+    "backup.import": "Wczytaj z pliku",
+    "backup.importing": "Wczytywanie…",
+    "backup.importSuccess": "Zaimportowano {n} meczów.",
+    "backup.importError": "Nieprawidłowy plik kopii zapasowej.",
   },
   en: {
     "common.back": "Back",
@@ -261,6 +270,15 @@ const dict = {
     "lang.pick.title": "Choose language",
     "lang.pl": "Polski",
     "lang.en": "English",
+
+    "backup.iconTitle": "Backup (export/import)",
+    "backup.title": "Backup",
+    "backup.hint": "Save your match history to a file before switching phones, or load a previously saved file.",
+    "backup.export": "Export to file",
+    "backup.import": "Load from file",
+    "backup.importing": "Loading…",
+    "backup.importSuccess": "Imported {n} matches.",
+    "backup.importError": "Invalid backup file.",
   },
 };
 
