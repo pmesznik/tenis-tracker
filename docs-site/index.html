@@ -233,7 +233,10 @@
     <option value="#przeglad">Przegląd</option>
     <option value="#funkcje">Funkcje</option>
     <option value="#architektura">Architektura wyniku</option>
+    <option value="#zegar">Zegar meczu</option>
     <option value="#udostepnianie">Udostępnianie</option>
+    <option value="#zawodnicy">Zawodnicy</option>
+    <option value="#backup">Kopia zapasowa</option>
     <option value="#nawierzchnie">Nawierzchnie i motyw</option>
     <option value="#jezyki">Języki</option>
     <option value="#stos">Stos technologiczny</option>
@@ -248,7 +251,10 @@
     <a href="#przeglad">Przegląd</a>
     <a href="#funkcje">Funkcje</a>
     <a href="#architektura">Architektura wyniku</a>
+    <a href="#zegar">Zegar meczu</a>
     <a href="#udostepnianie">Udostępnianie</a>
+    <a href="#zawodnicy">Zawodnicy</a>
+    <a href="#backup">Kopia zapasowa</a>
     <a href="#nawierzchnie">Nawierzchnie i motyw</a>
     <a href="#jezyki">Języki</a>
     <a href="#stos">Stos technologiczny</a>
@@ -266,7 +272,7 @@
           <div class="tagline">Dokumentacja projektu</div>
         </div>
       </div>
-      <div class="version-pill"><span class="dot"></span>v0.4.0</div>
+      <div class="version-pill"><span class="dot"></span>v0.7.0</div>
     </header>
 
     <p class="lede">
@@ -333,6 +339,26 @@
           <h3>Polski i angielski</h3>
           <p>Wybór języka przy pierwszym uruchomieniu, zmiana w dowolnej chwili flagą w pasku.</p>
         </div>
+        <div class="feature">
+          <span class="fi">⏱</span>
+          <h3>Zegar meczu i punktów</h3>
+          <p>Czas całkowity, czas każdego seta i długość punktów — zegar punktu zmienia kolor jak prawdziwy zegar serwisowy ATP/WTA (15s / 25s).</p>
+        </div>
+        <div class="feature">
+          <span class="fi">📊</span>
+          <h3>Karta Pro dla trenera</h3>
+          <p>Drugi wariant linku wyniku — pełny raport z czasami i statystykami obu zawodników, nie tylko sam wynik.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">★</span>
+          <h3>Zawodnicy i podpowiedzi</h3>
+          <p>Apka pamięta wpisane nazwiska, pozwala oznaczyć ulubionych i podpowiada przeciwników z historii meczów.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">💾</span>
+          <h3>Kopia zapasowa</h3>
+          <p>Eksport i import historii meczów do pliku .json — na wypadek zmiany telefonu, bez chmury.</p>
+        </div>
       </div>
     </section>
 
@@ -363,9 +389,31 @@
       </div>
     </section>
 
+    <section id="zegar">
+      <div class="eyebrow">Zegar</div>
+      <h2>Czas meczu, setów i punktów</h2>
+      <p>
+        Każdy zapisany punkt dostaje znacznik czasu (<code>t: Date.now()</code>) w <code>commitPoint()</code> —
+        jedynym miejscu, przez które przechodzi każdy punkt niezależnie od poziomu śledzenia. Reszta jest
+        wyliczana z tych znaczników, w tym samym duchu co <code>computeScore()</code>: <code>computeScore()</code>
+        dolicza teraz <code>durationMs</code> do każdego ukończonego seta, a <code>time.js</code> liczy z
+        <code>pointLog</code> długość każdego punktu, najdłuższy punkt i średnią.
+      </p>
+      <div class="callout">
+        Świadoma nieścisłość: bez przycisku pauzy przerwa między setami wlicza się w czas seta, który po niej
+        następuje, i w czas jego pierwszego punktu. Czas pierwszego seta jest zawsze dokładny.
+      </div>
+      <p>
+        W trackerze oba zegary (mecz i bieżący punkt) renderują się jako <code>ClockChip</code> — pulsująca
+        kropka i cyfry tabularne w stylistyce tablicy wyników (<code>ui.jsx</code>). Zegar punktu zmienia kolor
+        wg progów prawdziwego zegara serwisowego ATP/WTA: neutralny do 15s, bursztynowy 15–25s, czerwony i
+        pulsujący po 25s.
+      </p>
+    </section>
+
     <section id="udostepnianie">
       <div class="eyebrow">Udostępnianie</div>
-      <h2>Dwa tryby: migawka i na żywo</h2>
+      <h2>Trzy tryby: migawka, Pro i na żywo</h2>
       <h3>Wynik końcowy — bez backendu</h3>
       <p>
         <code>shareLink.js</code> koduje nazwiska, sety, nawierzchnię i zwycięzcę jako base64url wprost
@@ -380,10 +428,20 @@
         <div class="flow-box"><span class="k">03</span><span class="v">share-site/index.html</span><span class="d">GitHub Pages</span></div>
       </div>
 
+      <h3>Karta Pro — pełny raport dla trenera</h3>
+      <p>
+        Ten sam mechanizm bez backendu, drugi parametr adresu: <code>?pro=</code> zamiast <code>?d=</code>.
+        Payload dokłada czas meczu, czas każdego seta, średnią i najdłuższy punkt oraz pełne statystyki obu
+        zawodników (asy, podwójne błędy, winnery, błędy wymuszone/niewymuszone, punkty przy siatce, średnia
+        długość wymiany) — dokładnie te dane, które <code>MatchSummaryPage</code> i tak już liczy do
+        wyświetlenia w apce (<code>stats.js</code>). Dostępna tylko dla meczów śledzonych na poziomie Średni+,
+        bo dopiero wtedy istnieją dane punktowe do pokazania.
+      </p>
+
       <h3>Wynik na żywo — Firebase Realtime Database</h3>
       <p>
         Przycisk <strong>🔴 Na żywo</strong> w trackerze publikuje aktualny wynik do ścieżki
-        <code>liveMatches/{'{matchId}'}</code> po każdym punkcie. Strona wyniku subskrybuje tę ścieżkę
+        <code>liveMatches/{matchId}</code> po każdym punkcie. Strona wyniku subskrybuje tę ścieżkę
         (<code>onValue</code>) i aktualizuje się u odbiorcy bez odświeżania strony.
       </p>
       <div class="flow">
@@ -397,6 +455,42 @@
         Identyfikator meczu to losowy UUID — praktycznie niezgadywalny, więc reguły bazy pozwalają na otwarty
         odczyt/zapis pod konkretną ścieżką bez systemu logowania. Docelowy build produkcyjny mógłby to zaostrzyć,
         ale dla hobbystycznej apki to rozsądny kompromis.
+      </p>
+    </section>
+
+    <section id="zawodnicy">
+      <div class="eyebrow">Zawodnicy</div>
+      <h2>Pamięć zawodników i podpowiedzi</h2>
+      <p>
+        <code>players.js</code> nie trzyma osobnej listy zawodników do synchronizowania — <code>buildPlayerIndex()</code>
+        liczy ją na bieżąco z historii meczów (<code>atz_matches</code>), tym samym pure-derive wzorcem co
+        <code>computeScore()</code>. Stąd biorą się dwie rzeczy w zakładce Gracze przy zakładaniu meczu:
+      </p>
+      <ul class="plain">
+        <li><strong>Podpowiedzi wszystkich znanych nazwisk</strong> — natywny <code>&lt;datalist&gt;</code> przy każdym polu, łącznie z partnerem w deblu.</li>
+        <li><strong>Ulubieni zawodnicy</strong> — gwiazdka przy polu Gracz 1/2 oznacza kogoś jako ulubionego. Lista ulubionych (<code>atz_favorite_players</code>) jest wspólna dla obu pól, więc jednym dotknięciem trafia w dowolne miejsce — lewo albo prawo — niezależnie od tego, po której stronie akurat gra.</li>
+        <li><strong>Podpowiedzi przeciwników</strong> — gdy jedno pole jest wypełnione, drugie podpowiada (posortowane od najczęstszych), z kim ta osoba grała wcześniej, licząc z <code>opponentCounts</code> w indeksie.</li>
+      </ul>
+    </section>
+
+    <section id="backup">
+      <div class="eyebrow">Kopia zapasowa</div>
+      <h2>Eksport i import historii do pliku</h2>
+      <p>
+        Ikonka 💾 w pasku głównego ekranu otwiera <code>BackupModal</code> z dwiema opcjami, obie bez
+        backendu ani żadnej dodatkowej zależności — tylko standardowe API przeglądarki:
+      </p>
+      <div class="flow">
+        <div class="flow-box"><span class="k">export</span><span class="v">Blob + &lt;a download&gt;</span><span class="d">plik .json z meczami i ulubionymi</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">import</span><span class="v">&lt;input type="file"&gt;</span><span class="d">natywny wybór pliku</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">merge</span><span class="v">scalanie po id</span><span class="d">nic lokalnego nie ginie</span></div>
+      </div>
+      <p>
+        Import scala zaimportowane mecze z tym, co już jest na urządzeniu — dopasowanie po <code>id</code>,
+        więc działa bezpiecznie zarówno przy pierwszym uruchomieniu na nowym telefonie (pusto → pełne
+        odtworzenie), jak i przy ponownym imporcie na telefonie, który już ma jakieś mecze.
       </p>
     </section>
 
@@ -468,10 +562,15 @@ translate("en", "tracker.pointFor", { name: "Novak" })
 <span class="tree-c">├─</span> version.js         <span class="tree-comment">// nazwa i numer wersji</span>
 <span class="tree-c">└─</span> matchtracker/
 <span class="tree-c">   ├─</span> scoringEngine.js  <span class="tree-comment">// computeScore(), presety reguł</span>
+<span class="tree-c">   ├─</span> time.js           <span class="tree-comment">// formatDuration, czas punktów/setów</span>
+<span class="tree-c">   ├─</span> stats.js          <span class="tree-comment">// statystyki punktowe (asy, winnery…)</span>
+<span class="tree-c">   ├─</span> players.js        <span class="tree-comment">// indeks zawodników, ulubieni, podpowiedzi</span>
 <span class="tree-c">   ├─</span> storage.js        <span class="tree-comment">// CRUD na meczach w localStorage</span>
-<span class="tree-c">   ├─</span> shareLink.js      <span class="tree-comment">// link do wyniku / do trybu live</span>
+<span class="tree-c">   ├─</span> backup.js         <span class="tree-comment">// eksport/import historii do pliku</span>
+<span class="tree-c">   ├─</span> shareLink.js      <span class="tree-comment">// link do wyniku / karty Pro / trybu live</span>
 <span class="tree-c">   ├─</span> liveSync.js       <span class="tree-comment">// zapis/odczyt Firebase Realtime DB</span>
-<span class="tree-c">   ├─</span> ui.jsx            <span class="tree-comment">// współdzielone komponenty (TopBar, ScoreTile…)</span>
+<span class="tree-c">   ├─</span> ui.jsx            <span class="tree-comment">// współdzielone komponenty (TopBar, ClockChip…)</span>
+<span class="tree-c">   ├─</span> BackupModal.jsx
 <span class="tree-c">   ├─</span> MatchListPage.jsx
 <span class="tree-c">   ├─</span> MatchSetupPage.jsx
 <span class="tree-c">   ├─</span> MatchTrackerPage.jsx
@@ -493,7 +592,7 @@ npx cap sync android</code></pre>
       <h3>GitHub Actions</h3>
       <p>Każdy push do <code>main</code> uruchamia dwa niezależne workflow:</p>
       <ul class="plain">
-        <li><strong>Build Android APK</strong> — buduje web, synchronizuje Capacitor, kompiluje <code>assembleDebug</code>, nadaje nazwę <code>tennis-tracker-v{'{numer_builda}'}.apk</code> i publikuje jako GitHub Release.</li>
+        <li><strong>Build Android APK</strong> — buduje web, synchronizuje Capacitor, kompiluje <code>assembleDebug</code>, nadaje nazwę <code>tennis-tracker-v{numer_builda}.apk</code> i publikuje jako GitHub Release.</li>
         <li><strong>Deploy share page to GitHub Pages</strong> — publikuje <code>share-site/</code> i <code>docs-site/</code> pod <code>pmesznik.github.io/tennis-tracker</code>.</li>
       </ul>
       <div class="callout">
@@ -517,7 +616,7 @@ npx cap sync android</code></pre>
 
     <footer>
       <span>Tennis Tracker — dokumentacja wewnętrzna projektu.</span>
-      <span>Wygenerowano dla wersji <span class="mono">v0.4.0</span></span>
+      <span>Wygenerowano dla wersji <span class="mono">v0.7.0</span></span>
     </footer>
   </main>
 </div>
