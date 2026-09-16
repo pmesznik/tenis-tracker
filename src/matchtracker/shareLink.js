@@ -8,6 +8,8 @@
 // zapisywane poza samym urządzeniem nadawcy.
 // ─────────────────────────────────────────────────────────────────────────────
 import { computeScore } from "./scoringEngine.js";
+import { computeStats } from "./stats.js";
+import { longestPoint, averagePointDurationMs } from "./time.js";
 
 export const SHARE_BASE_URL = "https://pmesznik.github.io/tennis-tracker";
 
@@ -43,6 +45,35 @@ export function buildShareUrl(match, setsRow) {
     w: deriveWinner(match),
   };
   return `${SHARE_BASE_URL}/?d=${toBase64Url(JSON.stringify(payload))}`;
+}
+
+// "Karta Pro" — jak buildShareUrl, ale dorzuca pełne statystyki i czasy
+// (dokładnie te, które MatchSummaryPage i tak już liczy do wyświetlenia w
+// apce), żeby trener dostał kompletny raport z meczu, nie tylko wynik.
+// Dostępna tylko dla meczów śledzonych na poziomie Średni+ (są dane punktowe).
+export function buildProShareUrl(match, setsRow) {
+  const hasTiming = !match.finalSetsOverride && match.startedAt != null;
+  const score = match.finalSetsOverride ? null : computeScore(match.rules, match.pointLog, match.initialServer || "team1", match.startedAt);
+  const { stats, avgRally } = computeStats(match.pointLog);
+  const longest = hasTiming ? longestPoint(match.pointLog, match.startedAt) : null;
+
+  const payload = {
+    v: 1,
+    t1: (match.team1?.names || []).filter(Boolean),
+    t2: (match.team2?.names || []).filter(Boolean),
+    s: setsRow,
+    sf: match.surface || null,
+    d: match.date || null,
+    w: deriveWinner(match),
+    md: hasTiming ? (match.endedAt ?? Date.now()) - match.startedAt : null,
+    sd: score ? score.sets.map((s) => s.durationMs) : null,
+    apm: hasTiming ? averagePointDurationMs(match.pointLog, match.startedAt) : null,
+    lpm: longest ? longest.durationMs : null,
+    st1: stats.team1,
+    st2: stats.team2,
+    ar: avgRally,
+  };
+  return `${SHARE_BASE_URL}/?pro=${toBase64Url(JSON.stringify(payload))}`;
 }
 
 // Link do trybu "na żywo" — strona pod tym adresem subskrybuje Firebase

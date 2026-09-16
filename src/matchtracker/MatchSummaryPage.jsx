@@ -5,28 +5,10 @@ import { useLang, surfaceLabel } from "../i18n.js";
 import { TopBar, FullScreen, ScrollBody, Card, ShareIcon } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, TEAM1, TEAM2 } from "./scoringEngine.js";
-import { shareMatch, buildShareUrl } from "./shareLink.js";
+import { shareMatch, buildShareUrl, buildProShareUrl } from "./shareLink.js";
 import { clearLiveScore } from "./liveSync.js";
 import { formatDuration, longestPoint, averagePointDurationMs } from "./time.js";
-
-function emptyStats() {
-  return { aces: 0, doubleFaults: 0, winners: 0, forcedErrors: 0, unforcedErrors: 0, netPoints: 0 };
-}
-
-function computeStats(pointLog) {
-  const stats = { team1: emptyStats(), team2: emptyStats() };
-  let rallyTotal = 0, rallyCount = 0;
-  for (const p of pointLog) {
-    if (p.endType === "ace") stats[p.winner].aces++;
-    if (p.endType === "doubleFault") stats[p.server].doubleFaults++;
-    if (p.endType === "winner" && p.endBy) stats[p.endBy].winners++;
-    if (p.endType === "forcedError" && p.endBy) stats[p.endBy].forcedErrors++;
-    if (p.endType === "unforcedError" && p.endBy) stats[p.endBy].unforcedErrors++;
-    if (p.atNet && p.endBy) stats[p.endBy].netPoints++;
-    if (typeof p.rallyLength === "number") { rallyTotal += p.rallyLength; rallyCount++; }
-  }
-  return { stats, avgRally: rallyCount ? (rallyTotal / rallyCount).toFixed(1) : null };
-}
+import { computeStats } from "./stats.js";
 
 const STAT_ROWS = [
   ["aces", "stat.aces"],
@@ -165,6 +147,12 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
             style={{ ...styles.primaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             onClick={() => shareMatch(`${name1} – ${name2}: ${setsRow.join(" ")}`, buildShareUrl(match, setsRow))}
           ><ShareIcon size={15} /> {tr("summary.shareResult")}</button>
+          {hasPointDetail && (
+            <button
+              style={{ ...styles.secondaryBtn, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              onClick={() => shareMatch(`${name1} – ${name2}: ${setsRow.join(" ")}`, buildProShareUrl(match, setsRow))}
+            ><ShareIcon size={15} /> {tr("summary.shareProResult")}</button>
+          )}
           <button style={{ ...styles.secondaryBtn, color: t.danger }} onClick={handleDelete}>🗑️ {tr("common.deleteMatch")}</button>
         </div>
       </ScrollBody>

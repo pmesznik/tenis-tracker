@@ -5,7 +5,7 @@ apply plugin: 'com.android.application'
 // Lokalny build bez tej właściwości dostaje wysoki sentinel (90000), żeby
 // zawsze był "nowszy" niż cokolwiek zbudowanego przez CI na tym samym telefonie.
 def appVersionCode = project.hasProperty('appVersionCode') ? (project.appVersionCode as Integer) : 90000
-def appVersionName = project.hasProperty('appVersionName') ? project.appVersionName : "0.5.0"
+def appVersionName = project.hasProperty('appVersionName') ? project.appVersionName : "0.6.0"
 
 android {
     namespace = "pl.atz.tenistracker"
