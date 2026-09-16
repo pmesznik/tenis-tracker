@@ -1,10 +1,11 @@
-name: Deploy share page to GitHub Pages
+name: Deploy pages (share + docs) to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - "share-site/**"
+      - "docs-site/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -26,11 +27,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare combined Pages content
+        run: |
+          mkdir -p pages-dist/docs
+          cp -r share-site/. pages-dist/
+          cp -r docs-site/. pages-dist/docs/
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: share-site
+          path: pages-dist
 
       - id: deployment
         uses: actions/deploy-pages@v4

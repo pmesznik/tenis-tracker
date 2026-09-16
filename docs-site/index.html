@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tennis Tracker Docs</title>
+<meta name="description" content="Dokumentacja techniczna aplikacji Tennis Tracker — architektura, udostępnianie na żywo, motyw kortu, i18n oraz proces buildu." />
+<meta name="theme-color" content="#111144" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F1EC;
+    --surface:#FFFFFF;
+    --surface-2:#EFEAE1;
+    --text:#20264a;
+    --text-muted:#5b6088;
+    --heading:#171b38;
+    --accent:#F98513;
+    --accent-ink:#7a3f06;
+    --accent-2:#223382;
+    --accent-2-soft:#9BACD8;
+    --border:rgba(34,51,130,0.14);
+    --border-strong:rgba(34,51,130,0.26);
+    --code-bg:#1b2145;
+    --code-text:#e7ecff;
+    --shadow: 0 1px 2px rgba(23,27,56,0.04), 0 8px 24px rgba(23,27,56,0.06);
+    --clay:#e8813f; --hard:#38bdf8; --grass:#4ade80; --neutral:#9BACD8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#111144;
+      --surface:#1b2456;
+      --surface-2:#171b38;
+      --text:#e7e9f7;
+      --text-muted:rgba(231,233,247,0.62);
+      --heading:#F4F1EC;
+      --accent:#F98513;
+      --accent-ink:#2a1400;
+      --accent-2:#9BACD8;
+      --accent-2-soft:rgba(155,172,216,0.16);
+      --border:rgba(155,172,216,0.20);
+      --border-strong:rgba(155,172,216,0.34);
+      --code-bg:#0d1130;
+      --code-text:#dfe5ff;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 30px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#111144;
+    --surface:#1b2456;
+    --surface-2:#171b38;
+    --text:#e7e9f7;
+    --text-muted:rgba(231,233,247,0.62);
+    --heading:#F4F1EC;
+    --accent:#F98513;
+    --accent-ink:#2a1400;
+    --accent-2:#9BACD8;
+    --accent-2-soft:rgba(155,172,216,0.16);
+    --border:rgba(155,172,216,0.20);
+    --border-strong:rgba(155,172,216,0.34);
+    --code-bg:#0d1130;
+    --code-text:#dfe5ff;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 30px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size:16px; line-height:1.6;
+    padding-inline: max(20px, calc((100vw - 1180px)/2));
+  }
+  h1,h2,h3{
+    font-family:'Barlow Condensed', system-ui, sans-serif;
+    color:var(--heading); text-wrap:balance; margin:0 0 .4em;
+    letter-spacing:0.01em;
+  }
+  p{margin:0 0 1em; max-width:66ch;}
+  a{color:var(--accent-2); text-decoration-thickness:1.5px; text-underline-offset:2px;}
+  code, .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  .eyebrow{
+    font-family:'Barlow Condensed', sans-serif; font-weight:800; font-size:12.5px;
+    letter-spacing:0.14em; text-transform:uppercase; color:var(--accent);
+    display:flex; align-items:center; gap:8px; margin-bottom:10px;
+  }
+  .eyebrow::before{content:""; width:18px; height:2px; background:var(--accent); border-radius:2px; display:inline-block;}
+
+  /* ---------- shell layout ---------- */
+  .shell{ display:flex; gap:56px; align-items:flex-start; max-width:1180px; margin:0 auto; }
+  nav.toc{
+    position:sticky; top:32px; flex:0 0 200px; padding-top:38px;
+    display:flex; flex-direction:column; gap:2px; align-self:flex-start;
+    max-height:calc(100vh - 64px); overflow-y:auto;
+  }
+  nav.toc a{
+    color:var(--text-muted); text-decoration:none; font-size:14px; font-weight:500;
+    padding:6px 0 6px 14px; border-left:2px solid transparent; transition:border-color .15s, color .15s;
+  }
+  nav.toc a:hover{ color:var(--text); }
+  nav.toc a.active{ color:var(--accent); border-left-color:var(--accent); font-weight:600; }
+  main{ flex:1 1 auto; min-width:0; max-width:800px; padding:38px 0 90px; }
+
+  .mobile-toc{ display:none; }
+
+  /* ---------- header ---------- */
+  header.hero{
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    padding:22px 0 26px; border-bottom:1px solid var(--border); margin-bottom:40px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .mark{
+    width:40px; height:40px; border-radius:10px; flex-shrink:0;
+    background: radial-gradient(circle at 30% 25%, var(--accent) 0%, var(--accent-ink) 130%);
+    display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow: var(--shadow);
+  }
+  .brand .name{ font-family:'Barlow Condensed', sans-serif; font-weight:800; font-size:22px; letter-spacing:0.02em; line-height:1.05; }
+  .brand .tagline{ font-size:12.5px; color:var(--text-muted); margin-top:2px; }
+  .version-pill{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:500;
+    background:var(--code-bg); color:var(--code-text); padding:6px 12px 6px 10px; border-radius:7px;
+    display:flex; align-items:center; gap:7px; flex-shrink:0; box-shadow: var(--shadow);
+  }
+  .version-pill .dot{ width:7px; height:7px; border-radius:50%; background:#4ade80; box-shadow:0 0 0 3px rgba(74,222,128,0.18); flex-shrink:0; }
+
+  .lede{ font-size:19px; color:var(--text); max-width:60ch; }
+  .lede strong{ color:var(--heading); }
+
+  section{ margin-top:64px; scroll-margin-top:28px; }
+  section > h2{ font-size:30px; font-weight:800; }
+  section > .eyebrow + h2{ margin-top:0; }
+  h3{ font-size:19px; font-weight:700; margin-top:1.6em; }
+
+  /* ---------- feature grid ---------- */
+  .grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; margin-top:22px; }
+  .feature{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:18px 18px 16px; box-shadow: var(--shadow);
+  }
+  .feature .fi{ font-size:20px; margin-bottom:8px; display:block; }
+  .feature h3{ margin:0 0 6px; font-size:16.5px; }
+  .feature p{ margin:0; font-size:14.5px; color:var(--text-muted); }
+
+  /* ---------- code / file tree ---------- */
+  pre{
+    background:var(--code-bg); color:var(--code-text); border-radius:10px;
+    padding:16px 18px; overflow-x:auto; font-size:13.5px; line-height:1.65;
+    box-shadow: var(--shadow); margin:16px 0;
+  }
+  pre code{ font-family:'IBM Plex Mono', monospace; }
+  .tree-c{ color:#8f9bd6; }
+  .tree-f{ color:var(--code-text); }
+  .tree-comment{ color:#6b74a8; }
+  :not(pre) > code{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:5px;
+    padding:1.5px 6px; font-size:0.88em; color:var(--text);
+  }
+
+  /* ---------- diagram ---------- */
+  .flow{ display:flex; align-items:stretch; gap:0; margin:24px 0; flex-wrap:wrap; }
+  .flow-box{
+    background:var(--surface); border:1px solid var(--border-strong); border-radius:10px;
+    padding:14px 16px; box-shadow:var(--shadow); flex:1 1 150px; min-width:140px;
+  }
+  .flow-box .k{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:4px; }
+  .flow-box .v{ font-size:14.5px; font-weight:600; color:var(--heading); }
+  .flow-box .d{ font-size:12.5px; color:var(--text-muted); margin-top:3px; }
+  .flow-arrow{ display:flex; align-items:center; justify-content:center; padding:0 10px; color:var(--text-muted); font-size:18px; flex:0 0 auto; }
+  @media (max-width: 620px){ .flow{ flex-direction:column; } .flow-arrow{ transform:rotate(90deg); padding:6px 0; } }
+
+  /* ---------- surface swatches ---------- */
+  .surfaces{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:22px 0; }
+  .surface-card{ border:1px solid var(--border); border-radius:12px; padding:16px 12px; text-align:center; background:var(--surface); box-shadow:var(--shadow); }
+  .surface-dot{ width:26px; height:26px; border-radius:50%; margin:0 auto 10px; }
+  .surface-card .sname{ font-weight:700; font-size:14.5px; color:var(--heading); }
+  .surface-card .shex{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-muted); margin-top:3px; }
+
+  /* ---------- table ---------- */
+  table{ width:100%; border-collapse:collapse; margin:18px 0; font-size:14.5px; }
+  th{ text-align:left; font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; font-size:12px; color:var(--text-muted); padding:0 10px 8px; border-bottom:1px solid var(--border-strong); }
+  td{ padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  td code{ white-space:nowrap; }
+  .tw{ overflow-x:auto; }
+
+  /* ---------- badges / pills ---------- */
+  .badges{ display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 6px; }
+  .badge{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; padding:5px 10px; border-radius:20px;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--text-muted);
+  }
+
+  .callout{
+    border-left:3px solid var(--accent); background:var(--accent-2-soft, rgba(249,133,19,0.08));
+    padding:12px 16px; border-radius:0 8px 8px 0; font-size:14.5px; margin:18px 0;
+  }
+  .callout strong{ color:var(--heading); }
+
+  ul.plain{ padding-left:20px; margin:0 0 1em; }
+  ul.plain li{ margin-bottom:6px; }
+
+  footer{
+    border-top:1px solid var(--border); margin-top:70px; padding:24px 0 8px;
+    font-size:13px; color:var(--text-muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+
+  @media (max-width: 900px){
+    body{ padding-inline:18px; }
+    .shell{ gap:0; }
+    nav.toc{ display:none; }
+    .mobile-toc{
+      display:block; position:sticky; top:0; z-index:20; background:var(--bg);
+      padding:10px 0; margin:0 -18px; padding-inline:18px; border-bottom:1px solid var(--border);
+    }
+    .mobile-toc select{
+      width:100%; font-family:'Barlow Condensed',sans-serif; font-weight:700; text-transform:uppercase;
+      letter-spacing:0.04em; font-size:13px; padding:10px 12px; border-radius:8px;
+      background:var(--surface); color:var(--heading); border:1px solid var(--border-strong);
+    }
+    main{ max-width:100%; padding-top:16px; }
+    .grid{ grid-template-columns:1fr; }
+    .surfaces{ grid-template-columns:repeat(2,1fr); }
+    header.hero{ flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="mobile-toc">
+  <select onchange="if(this.value) location.hash=this.value;">
+    <option value="">Przejdź do sekcji…</option>
+    <option value="#przeglad">Przegląd</option>
+    <option value="#funkcje">Funkcje</option>
+    <option value="#architektura">Architektura wyniku</option>
+    <option value="#udostepnianie">Udostępnianie</option>
+    <option value="#nawierzchnie">Nawierzchnie i motyw</option>
+    <option value="#jezyki">Języki</option>
+    <option value="#stos">Stos technologiczny</option>
+    <option value="#struktura">Struktura projektu</option>
+    <option value="#build">Build i wydania</option>
+    <option value="#linki">Linki</option>
+  </select>
+</div>
+
+<div class="shell">
+  <nav class="toc" id="toc">
+    <a href="#przeglad">Przegląd</a>
+    <a href="#funkcje">Funkcje</a>
+    <a href="#architektura">Architektura wyniku</a>
+    <a href="#udostepnianie">Udostępnianie</a>
+    <a href="#nawierzchnie">Nawierzchnie i motyw</a>
+    <a href="#jezyki">Języki</a>
+    <a href="#stos">Stos technologiczny</a>
+    <a href="#struktura">Struktura projektu</a>
+    <a href="#build">Build i wydania</a>
+    <a href="#linki">Linki</a>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="brand">
+        <div class="mark">🎾</div>
+        <div>
+          <div class="name">TENNIS TRACKER</div>
+          <div class="tagline">Dokumentacja projektu</div>
+        </div>
+      </div>
+      <div class="version-pill"><span class="dot"></span>v0.4.0</div>
+    </header>
+
+    <p class="lede">
+      <strong>Tennis Tracker</strong> to samodzielna aplikacja na Androida do liczenia wyniku meczu tenisowego
+      punkt po punkcie, na żywo, w trakcie gry. Powstała jako osobny projekt inspirowany aplikacją
+      <em>Tennis Math</em> — bez współdzielenia danych z inną aplikacją rankingową tego samego autora.
+    </p>
+
+    <section id="przeglad">
+      <div class="eyebrow">Przegląd</div>
+      <h2>Co to jest</h2>
+      <p>
+        Aplikacja startuje od ekranu wyboru: śledzić mecz na żywo czy zapisać już rozegrany wynik ręcznie.
+        Tryb live prowadzi przez cztery poziomy szczegółowości — od dwóch dużych przycisków po pełny zapis
+        serwisu, rodzaju uderzenia i długości wymiany — i w każdej chwili pozwala się cofnąć o punkt, bo wynik
+        nigdy nie jest trzymany jako osobny, mutowalny stan (patrz <a href="#architektura">architektura wyniku</a>).
+      </p>
+      <p>
+        Każdy mecz zapamiętuje nawierzchnię, na której się odbywa, i cała apka przebarwia się na jej kolor —
+        terakota dla ziemnej, błękit dla twardej, zieleń dla trawy — zamiast zwykłego przełącznika jasny/ciemny.
+        Wynik można udostępnić dwojako: jako link do zamrożonej migawki końcowego wyniku albo jako link
+        aktualizujący się na żywo u odbiorcy, punkt po punkcie.
+      </p>
+      <div class="badges">
+        <span class="badge">Android · Capacitor</span>
+        <span class="badge">React 18 + Vite</span>
+        <span class="badge">Firebase Realtime DB</span>
+        <span class="badge">PL / EN</span>
+        <span class="badge">GitHub Actions CI</span>
+      </div>
+    </section>
+
+    <section id="funkcje">
+      <div class="eyebrow">Funkcje</div>
+      <h2>Co potrafi aplikacja</h2>
+      <div class="grid">
+        <div class="feature">
+          <span class="fi">🎾</span>
+          <h3>4 poziomy śledzenia</h3>
+          <p>Podstawowy (dwa przyciski), Średni (serwis + wynik piłki), Zaawansowany (+ forehand/backhand, siatka) i z wymianami (+ liczba uderzeń).</p>
+        </div>
+        <div class="feature">
+          <span class="fi">↩</span>
+          <h3>Cofnij bez ryzyka</h3>
+          <p>Undo usuwa ostatni punkt z historii i liczy wynik od zera — nie da się rozjechać z rzeczywistym przebiegiem meczu.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">🟠</span>
+          <h3>Kolor wg nawierzchni</h3>
+          <p>Ziemna, twarda i trawa mają własny, spójny motyw kolorystyczny całej aplikacji — bez trybu jasny/ciemny.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">📤</span>
+          <h3>Udostępnij wynik</h3>
+          <p>Link do statycznej strony z wynikiem końcowym — dane zakodowane w samym adresie URL, bez serwera.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">🔴</span>
+          <h3>Śledzenie na żywo</h3>
+          <p>Link, który aktualizuje się u odbiorcy po każdym punkcie — przez Firebase Realtime Database.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">🌐</span>
+          <h3>Polski i angielski</h3>
+          <p>Wybór języka przy pierwszym uruchomieniu, zmiana w dowolnej chwili flagą w pasku.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="architektura">
+      <div class="eyebrow">Architektura</div>
+      <h2>Wynik jako odtwarzana historia</h2>
+      <p>
+        Kluczowa decyzja projektowa: <code>computeScore()</code> nie trzyma mutowalnego „aktualnego wyniku”.
+        Zamiast tego za każdym wywołaniem odtwarza cały mecz od zera na podstawie listy punktów
+        (<code>pointLog</code>). Dzięki temu <strong>Cofnij</strong> to po prostu „usuń ostatni wpis i policz
+        jeszcze raz”, a wynik nigdy nie może rozjechać się z historią.
+      </p>
+      <pre><code>computeScore(rules, pointLog, initialServer)
+  → { sets, curSetGamesA/B, game, server, matchWinner, isMatchPoint }</code></pre>
+      <p>Reguły meczu to jeden z pięciu presetów (<code>src/matchtracker/scoringEngine.js</code>):</p>
+      <table>
+        <tr><th>Preset</th><th>Sety</th><th>Tie-break</th><th>Uwagi</th></tr>
+        <tr><td>Do 2 wygranych + TB</td><td>3</td><td>7 przy 6:6</td><td>klasyczny</td></tr>
+        <tr><td>Do 2 wygranych + super-TB</td><td>3</td><td>7 przy 6:6</td><td>3. set = super tie-break do 10</td></tr>
+        <tr><td>Bez przewag + super-TB</td><td>3</td><td>7 przy 6:6</td><td>gem kończy złoty punkt przy 40:40</td></tr>
+        <tr><td>Pro-set</td><td>1</td><td>7 przy 8:8</td><td>set do 8 gemów</td></tr>
+        <tr><td>Do 3 wygranych + TB</td><td>5</td><td>7 przy 6:6</td><td>format wielkoszlemowy</td></tr>
+      </table>
+      <div class="callout">
+        Etykiety i opisy presetów oraz nazwy nawierzchni nie są tekstem wpisanym na sztywno — to klucze
+        tłumaczeń rozwiązywane przez <code>src/i18n.js</code>, żeby ta sama reguła gry działała identycznie
+        po polsku i angielsku.
+      </div>
+    </section>
+
+    <section id="udostepnianie">
+      <div class="eyebrow">Udostępnianie</div>
+      <h2>Dwa tryby: migawka i na żywo</h2>
+      <h3>Wynik końcowy — bez backendu</h3>
+      <p>
+        <code>shareLink.js</code> koduje nazwiska, sety, nawierzchnię i zwycięzcę jako base64url wprost
+        w parametrze <code>?d=</code> adresu URL. Strona pod tym adresem odczytuje go po stronie klienta —
+        nic nie jest nigdzie zapisywane poza urządzeniem nadawcy.
+      </p>
+      <div class="flow">
+        <div class="flow-box"><span class="k">01</span><span class="v">Koniec meczu</span><span class="d">MatchSummaryPage</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">02</span><span class="v">Kodowanie base64url</span><span class="d">w samym adresie URL</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">03</span><span class="v">share-site/index.html</span><span class="d">GitHub Pages</span></div>
+      </div>
+
+      <h3>Wynik na żywo — Firebase Realtime Database</h3>
+      <p>
+        Przycisk <strong>🔴 Na żywo</strong> w trackerze publikuje aktualny wynik do ścieżki
+        <code>liveMatches/{'{matchId}'}</code> po każdym punkcie. Strona wyniku subskrybuje tę ścieżkę
+        (<code>onValue</code>) i aktualizuje się u odbiorcy bez odświeżania strony.
+      </p>
+      <div class="flow">
+        <div class="flow-box"><span class="k">tap</span><span class="v">Punkt w trackerze</span><span class="d">MatchTrackerPage</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">push</span><span class="v">Firebase Realtime DB</span><span class="d">tenis-tracker-live</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">live</span><span class="v">Widz na share-site</span><span class="d">aktualizacja bez reloadu</span></div>
+      </div>
+      <p>
+        Identyfikator meczu to losowy UUID — praktycznie niezgadywalny, więc reguły bazy pozwalają na otwarty
+        odczyt/zapis pod konkretną ścieżką bez systemu logowania. Docelowy build produkcyjny mógłby to zaostrzyć,
+        ale dla hobbystycznej apki to rozsądny kompromis.
+      </p>
+    </section>
+
+    <section id="nawierzchnie">
+      <div class="eyebrow">Motyw</div>
+      <h2>Kolor aplikacji = nawierzchnia kortu</h2>
+      <p>
+        Zamiast trybu jasny/ciemny, cały interfejs zmienia paletę w zależności od nawierzchni aktualnie
+        zakładanego lub oglądanego meczu (<code>src/theme.js</code>). Poza kontekstem meczu apka zostaje
+        w neutralnym granacie.
+      </p>
+      <div class="surfaces">
+        <div class="surface-card"><div class="surface-dot" style="background:var(--neutral)"></div><div class="sname">Neutralny</div><div class="shex">#9BACD8 akcent</div></div>
+        <div class="surface-card"><div class="surface-dot" style="background:var(--clay)"></div><div class="sname">Ziemna</div><div class="shex">#e8813f</div></div>
+        <div class="surface-card"><div class="surface-dot" style="background:var(--hard)"></div><div class="sname">Twarda</div><div class="shex">#38bdf8</div></div>
+        <div class="surface-card"><div class="surface-dot" style="background:var(--grass)"></div><div class="sname">Trawa</div><div class="shex">#4ade80</div></div>
+      </div>
+      <p>Marka bazowa (ikona, splash, neutralne tło) trzyma się stałej palety z <code>src/palette.js</code>:</p>
+      <table>
+        <tr><th>Nazwa</th><th>Hex</th><th>Użycie</th></tr>
+        <tr><td>Luster White</td><td><code>#F4F1EC</code></td><td>tekst na ciemnym tle</td></tr>
+        <tr><td>Aster Flower Blue</td><td><code>#9BACD8</code></td><td>akcent neutralny / obwódki</td></tr>
+        <tr><td>Habañero</td><td><code>#F98513</code></td><td>akcent marki, CTA</td></tr>
+        <tr><td>Jodhpur Tan</td><td><code>#DAD1C8</code></td><td>ciepły neutral</td></tr>
+        <tr><td>Deep Space Royal</td><td><code>#223382</code></td><td>tło / drugorzędne elementy</td></tr>
+        <tr><td>Deadly Depths</td><td><code>#111144</code></td><td>tło bazowe, najciemniejszy granat</td></tr>
+      </table>
+    </section>
+
+    <section id="jezyki">
+      <div class="eyebrow">i18n</div>
+      <h2>Polski i angielski</h2>
+      <p>
+        Wybór języka nie jest zgadywany z ustawień systemu — pokazuje się jawnie przy pierwszym uruchomieniu
+        i jest zapamiętywany w <code>localStorage</code> (<code>atz_lang</code>). Flagi 🇵🇱 / 🇬🇧 w pasku listy
+        meczów przełączają go w dowolnej chwili, bez restartu.
+      </p>
+      <pre><code>// src/i18n.js
+translate("en", "tracker.pointFor", { name: "Novak" })
+→ "Point:\nNovak"</code></pre>
+      <p>
+        Każdy widoczny napis — łącznie z opisami presetów reguł, poziomami śledzenia i nazwami nawierzchni —
+        jest kluczem w tym słowniku, nie tekstem wpisanym w komponencie. Dodanie kolejnego języka to nowy
+        obiekt w <code>dict</code>, bez zmian w JSX.
+      </p>
+    </section>
+
+    <section id="stos">
+      <div class="eyebrow">Stos technologiczny</div>
+      <h2>Z czego zbudowana jest aplikacja</h2>
+      <div class="tw"><table>
+        <tr><th>Warstwa</th><th>Technologia</th><th>Rola</th></tr>
+        <tr><td>UI</td><td><code>react</code> 18.3, <code>vite</code> 5.3</td><td>SPA bez routera — nawigacja to jeden obiekt stanu w <code>App.jsx</code></td></tr>
+        <tr><td>Android</td><td><code>@capacitor/core</code>, <code>@capacitor/android</code> 8.5</td><td>WebView opakowany w natywny APK</td></tr>
+        <tr><td>Udostępnianie</td><td><code>@capacitor/share</code> 8.0</td><td>systemowy ekran udostępniania (WhatsApp itd.)</td></tr>
+        <tr><td>Live sync</td><td><code>firebase</code> 12.19 (Realtime Database)</td><td>synchronizacja wyniku na żywo</td></tr>
+        <tr><td>Trwałość</td><td><code>localStorage</code></td><td>lista meczów, wybór języka — bez backendu</td></tr>
+      </table></div>
+    </section>
+
+    <section id="struktura">
+      <div class="eyebrow">Kod</div>
+      <h2>Struktura projektu</h2>
+      <pre><code><span class="tree-f">src/</span>
+<span class="tree-c">├─</span> App.jsx            <span class="tree-comment">// routing widoków, motyw, wybór języka</span>
+<span class="tree-c">├─</span> theme.js           <span class="tree-comment">// motywy kolorystyczne wg nawierzchni</span>
+<span class="tree-c">├─</span> palette.js         <span class="tree-comment">// stałe kolory marki</span>
+<span class="tree-c">├─</span> i18n.js            <span class="tree-comment">// słownik PL/EN + kontekst języka</span>
+<span class="tree-c">├─</span> version.js         <span class="tree-comment">// nazwa i numer wersji</span>
+<span class="tree-c">└─</span> matchtracker/
+<span class="tree-c">   ├─</span> scoringEngine.js  <span class="tree-comment">// computeScore(), presety reguł</span>
+<span class="tree-c">   ├─</span> storage.js        <span class="tree-comment">// CRUD na meczach w localStorage</span>
+<span class="tree-c">   ├─</span> shareLink.js      <span class="tree-comment">// link do wyniku / do trybu live</span>
+<span class="tree-c">   ├─</span> liveSync.js       <span class="tree-comment">// zapis/odczyt Firebase Realtime DB</span>
+<span class="tree-c">   ├─</span> ui.jsx            <span class="tree-comment">// współdzielone komponenty (TopBar, ScoreTile…)</span>
+<span class="tree-c">   ├─</span> MatchListPage.jsx
+<span class="tree-c">   ├─</span> MatchSetupPage.jsx
+<span class="tree-c">   ├─</span> MatchTrackerPage.jsx
+<span class="tree-c">   └─</span> MatchSummaryPage.jsx
+
+<span class="tree-f">share-site/index.html</span>  <span class="tree-comment">// statyczna strona wyniku, hostowana osobno</span>
+<span class="tree-f">docs-site/index.html</span>   <span class="tree-comment">// ta strona dokumentacji</span>
+<span class="tree-f">firebase/</span>              <span class="tree-comment">// reguły Realtime Database + config projektu</span>
+<span class="tree-f">android/</span>               <span class="tree-comment">// projekt Capacitor/Gradle</span></code></pre>
+    </section>
+
+    <section id="build">
+      <div class="eyebrow">Wydania</div>
+      <h2>Build lokalny i CI</h2>
+      <h3>Lokalnie</h3>
+      <pre><code>npm run dev      <span class="tree-comment"># podgląd w przeglądarce, port 3100</span>
+npm run build    <span class="tree-comment"># produkcyjny build do dist/</span>
+npx cap sync android</code></pre>
+      <h3>GitHub Actions</h3>
+      <p>Każdy push do <code>main</code> uruchamia dwa niezależne workflow:</p>
+      <ul class="plain">
+        <li><strong>Build Android APK</strong> — buduje web, synchronizuje Capacitor, kompiluje <code>assembleDebug</code>, nadaje nazwę <code>tennis-tracker-v{'{numer_builda}'}.apk</code> i publikuje jako GitHub Release.</li>
+        <li><strong>Deploy share page to GitHub Pages</strong> — publikuje <code>share-site/</code> i <code>docs-site/</code> pod <code>pmesznik.github.io/tennis-tracker</code>.</li>
+      </ul>
+      <div class="callout">
+        Każdy build podpisany jest tym samym, zacommitowanym kluczem debugowym
+        (<code>android/app/debug.keystore</code>) — kolejne wersje instalują się „w miejscu”, bez
+        odinstalowywania poprzedniej.
+      </div>
+    </section>
+
+    <section id="linki">
+      <div class="eyebrow">Zasoby</div>
+      <h2>Linki</h2>
+      <table>
+        <tr><td>Repozytorium</td><td><a href="https://github.com/pmesznik/tennis-tracker">github.com/pmesznik/tennis-tracker</a></td></tr>
+        <tr><td>Strona wyniku</td><td><a href="https://pmesznik.github.io/tennis-tracker/">pmesznik.github.io/tennis-tracker</a></td></tr>
+        <tr><td>Ta dokumentacja</td><td><a href="https://pmesznik.github.io/tennis-tracker/docs/">pmesznik.github.io/tennis-tracker/docs</a></td></tr>
+        <tr><td>Wydania (APK)</td><td><a href="https://github.com/pmesznik/tennis-tracker/releases">github.com/pmesznik/tennis-tracker/releases</a></td></tr>
+        <tr><td>Application ID</td><td><code>pl.atz.tenistracker</code></td></tr>
+      </table>
+    </section>
+
+    <footer>
+      <span>Tennis Tracker — dokumentacja wewnętrzna projektu.</span>
+      <span>Wygenerowano dla wersji <span class="mono">v0.4.0</span></span>
+    </footer>
+  </main>
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
+  function onScroll(){
+    var y = window.scrollY + 120;
+    var current = sections[0];
+    sections.forEach(function(s){ if (s.offsetTop <= y) current = s; });
+    links.forEach(function(a){
+      a.classList.toggle('active', current && a.getAttribute('href') === '#' + current.id);
+    });
+  }
+  document.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>
