@@ -2,12 +2,11 @@
 import { useState, useEffect } from "react";
 import { useThemeCtx } from "../theme.js";
 import { useLang } from "../i18n.js";
-import { TopBar, FullScreen, BigButton, Chip, ScoreTile, TennisBall } from "./ui.jsx";
+import { TopBar, FullScreen, BigButton, Chip, ScoreTile, TennisBall, ClockChip } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, otherTeam, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildLiveShareUrl } from "./shareLink.js";
 import { publishLiveScore } from "./liveSync.js";
-import { formatDuration } from "./time.js";
 
 const INITIAL_STAGE = { name: "serve1", rallyCount: 0, shotType: "forehand", atNet: false, serveUsed: "1st" };
 
@@ -187,10 +186,12 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   const lastPointAt = match.pointLog.length ? match.pointLog[match.pointLog.length - 1].t : null;
   const pointStartRef = lastPointAt ?? score.currentSetStartedAt ?? match.startedAt;
   const matchClock = match.startedAt != null && (
-    <span style={{ fontSize: 12, fontWeight: 700, color: t.textSub, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-      ⏱ {formatDuration(now - match.startedAt)}
-    </span>
+    <ClockChip ms={now - match.startedAt} tone="accent" pulse />
   );
+  // Progi jak w prawdziwym zegarze serwisowym ATP/WTA (25s na serwis) —
+  // ostrzega kolorem, że wymiana/przerwa się przeciąga.
+  const pointElapsedMs = pointStartRef != null ? now - pointStartRef : null;
+  const pointClockTone = pointElapsedMs == null ? "muted" : pointElapsedMs >= 25000 ? "danger" : pointElapsedMs >= 15000 ? "warning" : "muted";
 
   const isBasic = match.trackingDepth === "basic";
   const stageLabel = stage.name === "serve1" ? tr("tracker.stage.serve1")
@@ -206,9 +207,9 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
             {stageLabel}
           </span>
         )}
-        {pointStartRef != null && (
-          <span style={{ fontSize: 11, color: t.textMuted, fontVariantNumeric: "tabular-nums" }} title={tr("tracker.pointClockTitle")}>
-            {formatDuration(now - pointStartRef)}
+        {pointElapsedMs != null && (
+          <span title={tr("tracker.pointClockTitle")}>
+            <ClockChip ms={pointElapsedMs} tone={pointClockTone} pulse={pointClockTone === "danger"} small />
           </span>
         )}
       </div>

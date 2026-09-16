@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useThemeCtx } from "../theme.js";
 import { useLang } from "../i18n.js";
+import { formatDuration } from "./time.js";
 
 // Ikonka piłki tenisowej narysowana w SVG — stałe, spójne renderowanie na
 // każdym urządzeniu (emoji 🎾 wygląda różnie zależnie od systemu/producenta,
@@ -16,6 +17,35 @@ export function TennisBall({ size = 14 }) {
       <path d="M2.2 8.2 Q12 3, 21.8 8.2" stroke="#fff" strokeWidth="1.6" fill="none" />
       <path d="M2.2 15.8 Q12 21, 21.8 15.8" stroke="#fff" strokeWidth="1.6" fill="none" />
     </svg>
+  );
+}
+
+// Zegar w stylistyce tablicy wyników (ten sam ciemny gradient co ScoreTile) —
+// pulsująca kropka + cyfry tabularne. `tone` przełącza kolor: "accent" (zegar
+// meczu), "muted"/"warning"/"danger" (zegar punktu, wg progów zegara
+// serwisowego ATP/WTA — 15s i 25s).
+export function ClockChip({ ms, tone = "accent", pulse = false, small = false }) {
+  const { t } = useThemeCtx();
+  const color = tone === "danger" ? t.danger : tone === "warning" ? "#f0a93a" : tone === "muted" ? t.textSub : t.accent;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: small ? 5 : 6,
+      background: "linear-gradient(180deg, #2a3154 0%, #171b30 100%)",
+      border: `1px solid ${color}55`, borderRadius: 20,
+      padding: small ? "3px 8px 3px 7px" : "5px 10px 5px 8px",
+      boxShadow: "0 3px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+      flexShrink: 0,
+    }}>
+      <span style={{
+        width: small ? 5 : 6, height: small ? 5 : 6, borderRadius: "50%", background: color,
+        boxShadow: `0 0 6px ${color}`, flexShrink: 0,
+        animation: pulse ? "clockPulse 1s ease-in-out infinite" : "none",
+      }} />
+      <span style={{
+        fontFamily: "monospace", fontVariantNumeric: "tabular-nums", fontWeight: 700,
+        fontSize: small ? 11.5 : 13, color, letterSpacing: "0.02em",
+      }}>{formatDuration(ms)}</span>
+    </span>
   );
 }
 

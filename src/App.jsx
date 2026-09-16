@@ -73,6 +73,10 @@ export default function App() {
           from { transform: rotateX(85deg); opacity: 0.3; }
           to   { transform: rotateX(0deg);  opacity: 1; }
         }
+        @keyframes clockPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.8); }
+        }
         input::placeholder { color: ${t.textMuted}; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
