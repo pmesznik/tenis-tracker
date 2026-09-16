@@ -16,6 +16,11 @@ export function otherTeam(team) {
   return team === TEAM1 ? TEAM2 : TEAM1;
 }
 
+// null jeśli brak któregoś znacznika czasu (mecz bez zapisanych timestampów).
+function durationSince(fromTs, toTs) {
+  return fromTs != null && toTs != null ? toTs - fromTs : null;
+}
+
 // ─── PRESETY ZASAD ─────────────────────────────────────────────────────────
 // gamesPerSet: do ilu gemów wygrywa się seta (normalnego, bez tie-breaka).
 // tiebreakAt: przy jakim wyniku gemów pada tie-break (zwykle == gamesPerSet).
@@ -111,11 +116,19 @@ function tiebreakServerAt(pointNumber1Indexed, firstServer) {
 /**
  * Odtwarza cały mecz od zera na podstawie listy punktów.
  * @param {object} rules - patrz PRESETS
- * @param {Array<{winner: 'team1'|'team2'}>} pointLog
+ * @param {Array<{winner: 'team1'|'team2', t?: number}>} pointLog - `t` to znacznik
+ *   czasu (Date.now()) zapisania punktu, używany do liczenia czasu setów.
  * @param {'team1'|'team2'} initialServer - kto serwował na starcie meczu
+ * @param {number} [startedAt] - Date.now() z momentu rozpoczęcia meczu (wybór
+ *   serwującego), punkt odniesienia dla czasu pierwszego seta.
  */
-export function computeScore(rules, pointLog, initialServer = TEAM1) {
-  const sets = []; // ukończone sety: {a,b,isSuperTiebreak,tiebreak?:{a,b}}
+export function computeScore(rules, pointLog, initialServer = TEAM1, startedAt = null) {
+  const sets = []; // ukończone sety: {a,b,isSuperTiebreak,tiebreak?:{a,b},durationMs?}
+  // Czas seta liczony jest od końca poprzedniego seta (albo startedAt dla
+  // pierwszego) do punktu, który kończy dany set. Świadomie NIE ma osobnego
+  // znacznika "początek nowego seta" — przerwa między setami wlicza się więc
+  // w czas seta, który po niej następuje (i w czas jego pierwszego punktu).
+  let setStartTime = startedAt;
   let curSetGamesA = 0, curSetGamesB = 0;
   let curPtsA = 0, curPtsB = 0; // punkty w aktualnym geme / tie-breaku / super-TB
   let setsWonA = 0, setsWonB = 0;
@@ -137,7 +150,8 @@ export function computeScore(rules, pointLog, initialServer = TEAM1) {
       if (aWins) curPtsA++; else curPtsB++;
       const target = rules.finalSetSuperTiebreakTo;
       if (Math.max(curPtsA, curPtsB) >= target && Math.abs(curPtsA - curPtsB) >= 2) {
-        sets.push({ a: curPtsA, b: curPtsB, isSuperTiebreak: true });
+        sets.push({ a: curPtsA, b: curPtsB, isSuperTiebreak: true, durationMs: durationSince(setStartTime, pt.t) });
+        setStartTime = pt.t ?? setStartTime;
         if (curPtsA > curPtsB) setsWonA++; else setsWonB++;
         curPtsA = 0; curPtsB = 0; curSetGamesA = 0; curSetGamesB = 0;
         completedGames++;
@@ -156,7 +170,8 @@ export function computeScore(rules, pointLog, initialServer = TEAM1) {
       if (Math.max(curPtsA, curPtsB) >= target && Math.abs(curPtsA - curPtsB) >= 2) {
         const aWinsTb = curPtsA > curPtsB;
         if (aWinsTb) curSetGamesA++; else curSetGamesB++;
-        sets.push({ a: curSetGamesA, b: curSetGamesB, isSuperTiebreak: false, tiebreak: { a: curPtsA, b: curPtsB } });
+        sets.push({ a: curSetGamesA, b: curSetGamesB, isSuperTiebreak: false, tiebreak: { a: curPtsA, b: curPtsB }, durationMs: durationSince(setStartTime, pt.t) });
+        setStartTime = pt.t ?? setStartTime;
         if (curSetGamesA > curSetGamesB) setsWonA++; else setsWonB++;
         curSetGamesA = 0; curSetGamesB = 0; curPtsA = 0; curPtsB = 0;
         completedGames++;
@@ -176,7 +191,8 @@ export function computeScore(rules, pointLog, initialServer = TEAM1) {
       completedGames++;
       const a = curSetGamesA, b = curSetGamesB;
       if ((a >= rules.gamesPerSet || b >= rules.gamesPerSet) && Math.abs(a - b) >= 2) {
-        sets.push({ a, b, isSuperTiebreak: false });
+        sets.push({ a, b, isSuperTiebreak: false, durationMs: durationSince(setStartTime, pt.t) });
+        setStartTime = pt.t ?? setStartTime;
         if (a > b) setsWonA++; else setsWonB++;
         curSetGamesA = 0; curSetGamesB = 0;
         if (setsWonA === setsToWinMatch) matchWinner = TEAM1;
@@ -216,6 +232,10 @@ export function computeScore(rules, pointLog, initialServer = TEAM1) {
     matchWinner,
     game,
     isMatchPoint: !matchWinner && computeIsMatchPoint(rules, { curPtsA, curPtsB, curSetGamesA, curSetGamesB, setsWonA, setsWonB, setsToWinMatch, inTb, inSuperTb, noAd: rules.noAd }),
+    // Znacznik początku aktualnie trwającego seta (do tykającego zegara w UI) —
+    // to samo "koniec poprzedniego seta / start meczu", którego używa liczenie
+    // durationMs powyżej, więc oba są ze sobą spójne.
+    currentSetStartedAt: matchWinner ? null : setStartTime,
   };
 }
 

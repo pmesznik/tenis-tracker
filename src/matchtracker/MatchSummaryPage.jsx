@@ -7,6 +7,7 @@ import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildShareUrl } from "./shareLink.js";
 import { clearLiveScore } from "./liveSync.js";
+import { formatDuration, longestPoint, averagePointDurationMs } from "./time.js";
 
 function emptyStats() {
   return { aces: 0, doubleFaults: 0, winners: 0, forcedErrors: 0, unforcedErrors: 0, netPoints: 0 };
@@ -51,15 +52,23 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
   const name2 = teamLabel(TEAM2, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
 
   let setsRow;
+  let score = null;
   if (match.status === "completed" && match.finalSetsOverride) {
     setsRow = match.finalSetsOverride.map((s) => formatSetsString([s]));
   } else {
-    const score = computeScore(match.rules, match.pointLog, match.initialServer || TEAM1);
+    score = computeScore(match.rules, match.pointLog, match.initialServer || TEAM1, match.startedAt);
     setsRow = match.status === "completed" ? score.sets.map((s) => formatSetsString([s])) : buildSetRow(match.rules, score);
   }
 
   const hasPointDetail = match.trackingDepth !== "basic" && match.pointLog.length > 0;
   const { stats, avgRally } = hasPointDetail ? computeStats(match.pointLog) : { stats: null, avgRally: null };
+
+  // Brak czasu dla ręcznie wpisanych wyników (finalSetsOverride) — nie ma tam
+  // żadnych znaczników czasu do policzenia.
+  const hasTiming = !match.finalSetsOverride && match.startedAt != null;
+  const totalDurationMs = hasTiming ? (match.endedAt ?? Date.now()) - match.startedAt : null;
+  const longest = hasTiming ? longestPoint(match.pointLog, match.startedAt) : null;
+  const avgPointMs = hasTiming ? averagePointDurationMs(match.pointLog, match.startedAt) : null;
 
   const handleDelete = () => {
     if (!confirm(tr("common.confirmDeleteMatch"))) return;
@@ -84,6 +93,44 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
             {match.note && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 4 }}>{match.note}</div>}
           </div>
         </Card>
+
+        {hasTiming && (
+          <Card>
+            <div style={{ padding: "10px 14px", borderBottom: `1px solid ${t.border}`, fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: t.textSub }}>
+              {tr("summary.matchDuration")}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", fontSize: 15 }}>
+              <span>⏱ {tr("summary.matchDuration")}</span>
+              <strong style={{ fontVariantNumeric: "tabular-nums" }}>{formatDuration(totalDurationMs)}</strong>
+            </div>
+            {score && score.sets.length > 0 && (
+              <div style={{ padding: "2px 14px 12px", borderTop: `1px solid ${t.border}` }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: t.textMuted, textTransform: "uppercase", margin: "8px 0 6px" }}>
+                  {tr("summary.setDurations")}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                  {score.sets.map((s, i) => (
+                    <span key={i} style={{ fontSize: 13, color: t.textSub, fontVariantNumeric: "tabular-nums" }}>
+                      {tr("summary.setN", { n: i + 1 })}: <strong style={{ color: t.text }}>{formatDuration(s.durationMs)}</strong>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {avgPointMs != null && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", borderTop: `1px solid ${t.border}`, fontSize: 13, color: t.textSub }}>
+                <span>{tr("summary.avgPointLength")}</span>
+                <strong style={{ color: t.text, fontVariantNumeric: "tabular-nums" }}>{formatDuration(avgPointMs)}</strong>
+              </div>
+            )}
+            {longest && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 14px", borderTop: `1px solid ${t.border}`, fontSize: 13, color: t.textSub }}>
+                <span>{tr("summary.longestPoint")}</span>
+                <strong style={{ color: t.text, fontVariantNumeric: "tabular-nums" }}>{formatDuration(longest.durationMs)}</strong>
+              </div>
+            )}
+          </Card>
+        )}
 
         {hasPointDetail && stats && (
           <Card>

@@ -7,6 +7,7 @@ import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, otherTeam, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildLiveShareUrl } from "./shareLink.js";
 import { publishLiveScore } from "./liveSync.js";
+import { formatDuration } from "./time.js";
 
 const INITIAL_STAGE = { name: "serve1", rallyCount: 0, shotType: "forehand", atNet: false, serveUsed: "1st" };
 
@@ -31,11 +32,21 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   const { t: tr } = useLang();
   const [match, setMatch] = useState(() => storage.getMatch(matchId));
   const [stage, setStage] = useState(INITIAL_STAGE);
+  const [now, setNow] = useState(() => Date.now());
 
   // Cała apka przebarwia się na nawierzchnię tego meczu, dopóki go oglądamy.
   useEffect(() => {
     onSurfaceChange?.(match?.surface || null);
   }, [match?.surface]);
+
+  // Tyka co sekundę, żeby zegar meczu/seta/punktu liczył się na żywo — sam
+  // czas jest zawsze wyliczany na bieżąco (Date.now() - znacznik), `now` tylko
+  // wymusza ponowne renderowanie.
+  useEffect(() => {
+    if (match?.status !== "in_progress") return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [match?.status]);
 
   if (!match) {
     return (
@@ -46,15 +57,17 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   }
 
   const rules = match.rules;
-  const score = computeScore(rules, match.pointLog, match.initialServer || TEAM1);
+  const score = computeScore(rules, match.pointLog, match.initialServer || TEAM1, match.startedAt);
   const name1 = teamLabel(TEAM1, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
   const name2 = teamLabel(TEAM2, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
 
   const persist = (newLog, extraPatch = {}) => {
-    const newScore = computeScore(rules, newLog, match.initialServer || TEAM1);
+    const newScore = computeScore(rules, newLog, match.initialServer || TEAM1, match.startedAt);
     const patch = {
       pointLog: newLog,
       status: newScore.matchWinner ? "completed" : "in_progress",
+      // Cofnij może "odkończyć" mecz — wtedy endedAt wraca na null.
+      endedAt: newScore.matchWinner ? (match.endedAt || Date.now()) : null,
       ...extraPatch,
     };
     const updated = storage.updateMatch(match.id, patch);
@@ -65,7 +78,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   };
 
   const handleSelectServer = (team) => {
-    const updated = storage.updateMatch(match.id, { initialServer: team });
+    const updated = storage.updateMatch(match.id, { initialServer: team, startedAt: Date.now() });
     setMatch(updated);
   };
 
@@ -75,7 +88,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       m = storage.updateMatch(m.id, { liveShareEnabled: true });
       setMatch(m);
     }
-    publishLiveScore(m.id, buildLivePayload(m, computeScore(rules, m.pointLog, m.initialServer || TEAM1)));
+    publishLiveScore(m.id, buildLivePayload(m, computeScore(rules, m.pointLog, m.initialServer || TEAM1, m.startedAt)));
     shareMatch(`${name1} – ${name2}`, buildLiveShareUrl(m.id));
   };
 
@@ -90,7 +103,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   );
 
   const commitPoint = (winner, extra = {}) => {
-    const point = { winner, server: score.server, ...extra };
+    const point = { winner, server: score.server, t: Date.now(), ...extra };
     persist([...match.pointLog, point]);
   };
 
@@ -167,6 +180,18 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
     </div>
   );
 
+  // Zegary: mecz liczy się od startedAt, bieżący punkt od ostatniego zapisanego
+  // punktu (albo od startu seta/meczu, jeśli jeszcze żaden punkt w secie nie
+  // padł — stąd świadoma nieścisłość na pierwszym punkcie nowego seta, patrz
+  // time.js). `now` tyka co sekundę tylko podczas trwania meczu.
+  const lastPointAt = match.pointLog.length ? match.pointLog[match.pointLog.length - 1].t : null;
+  const pointStartRef = lastPointAt ?? score.currentSetStartedAt ?? match.startedAt;
+  const matchClock = match.startedAt != null && (
+    <span style={{ fontSize: 12, fontWeight: 700, color: t.textSub, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+      ⏱ {formatDuration(now - match.startedAt)}
+    </span>
+  );
+
   const isBasic = match.trackingDepth === "basic";
   const stageLabel = stage.name === "serve1" ? tr("tracker.stage.serve1")
     : stage.name === "serve2" ? tr("tracker.stage.serve2")
@@ -179,6 +204,11 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
         {!isBasic && (
           <span style={{ fontSize: 12, fontWeight: 800, color: t.textMuted, textTransform: "uppercase" }}>
             {stageLabel}
+          </span>
+        )}
+        {pointStartRef != null && (
+          <span style={{ fontSize: 11, color: t.textMuted, fontVariantNumeric: "tabular-nums" }} title={tr("tracker.pointClockTitle")}>
+            {formatDuration(now - pointStartRef)}
           </span>
         )}
       </div>
@@ -198,7 +228,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   if (match.trackingDepth === "basic") {
     return (
       <FullScreen>
-        <TopBar title={`${name1} vs. ${name2}`} onBack={onBack} />
+        <TopBar title={`${name1} vs. ${name2}`} onBack={onBack} right={matchClock} />
         {Header}
         {TopRow}
         <div style={{ flex: 1, minHeight: 0, padding: 16, display: "flex", flexDirection: "row", gap: 12 }}>
@@ -317,7 +347,7 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
 
   return (
     <FullScreen>
-      <TopBar title={`${name1} vs. ${name2}`} onBack={onBack} />
+      <TopBar title={`${name1} vs. ${name2}`} onBack={onBack} right={matchClock} />
       {Header}
       {TopRow}
       {body}

@@ -108,6 +108,7 @@ const dict = {
     "tracker.tiebreakBadge": "TIE-BREAK",
     "tracker.matchPointBadge": "PIŁKA MECZOWA",
     "tracker.pointFor": "Punkt:\n{name}",
+    "tracker.pointClockTitle": "Czas trwania obecnego punktu",
 
     "summary.title": "Podsumowanie meczu",
     "summary.statsTitle": "Statystyki",
@@ -115,6 +116,11 @@ const dict = {
     "summary.hitsUnit": "uderzeń",
     "summary.continueMatch": "Kontynuuj mecz",
     "summary.shareResult": "Udostępnij wynik",
+    "summary.matchDuration": "Czas meczu",
+    "summary.setDurations": "Czas setów",
+    "summary.setN": "Set {n}",
+    "summary.longestPoint": "Najdłuższy punkt",
+    "summary.avgPointLength": "Średnia długość punktu",
 
     "stat.aces": "Asy serwisowe",
     "stat.doubleFaults": "Podwójne błędy",
@@ -223,6 +229,7 @@ const dict = {
     "tracker.tiebreakBadge": "TIE-BREAK",
     "tracker.matchPointBadge": "MATCH POINT",
     "tracker.pointFor": "Point:\n{name}",
+    "tracker.pointClockTitle": "Current point duration",
 
     "summary.title": "Match summary",
     "summary.statsTitle": "Stats",
@@ -230,6 +237,11 @@ const dict = {
     "summary.hitsUnit": "shots",
     "summary.continueMatch": "Continue match",
     "summary.shareResult": "Share result",
+    "summary.matchDuration": "Match duration",
+    "summary.setDurations": "Set times",
+    "summary.setN": "Set {n}",
+    "summary.longestPoint": "Longest point",
+    "summary.avgPointLength": "Average point length",
 
     "stat.aces": "Aces",
     "stat.doubleFaults": "Double faults",
