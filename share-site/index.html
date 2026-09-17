@@ -56,6 +56,17 @@
   }
   .game{ font-size:38px; font-weight:800; color:var(--text); margin:6px 0 14px; }
   .game .colon{ color:var(--text-muted); margin:0 10px; }
+  .game-num{ position:relative; display:inline-block; }
+  .serve-ball{
+    position:absolute; top:50%; width:16px; height:16px; pointer-events:none;
+    animation: ballBounce 0.9s ease-in-out infinite;
+  }
+  .serve-ball.left{ left:-22px; }
+  .serve-ball.right{ right:-22px; }
+  @keyframes ballBounce{
+    0%,100%{ transform: translateY(-50%); }
+    50%{ transform: translateY(calc(-50% - 6px)); }
+  }
   .meta{ font-size:13px; color:var(--text-sub); }
   .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--accent); margin-right:5px; vertical-align:middle; }
   .footer{ margin-top:22px; font-size:11px; color:var(--text-muted); }
@@ -111,6 +122,13 @@
     return decodeURIComponent(escape(atob(b64)));
   }
 
+  // Ta sama piłeczka (SVG) co TennisBall w aplikacji — spójny wygląd zamiast
+  // emoji 🎾, które różnie renderuje się na różnych systemach.
+  const BALL_SVG = '<svg width="16" height="16" viewBox="0 0 24 24">' +
+    '<circle cx="12" cy="12" r="10.5" fill="#d6f24c" stroke="#8caa1f" stroke-width="1" />' +
+    '<path d="M2.2 8.2 Q12 3, 21.8 8.2" stroke="#fff" stroke-width="1.6" fill="none" />' +
+    '<path d="M2.2 15.8 Q12 21, 21.8 15.8" stroke="#fff" stroke-width="1.6" fill="none" /></svg>';
+
   function esc(s) {
     const d = document.createElement("div");
     d.textContent = String(s == null ? "" : s);
@@ -154,7 +172,13 @@
 
     let gameRow = "";
     if (!winner && (data.gameA != null || data.gameB != null)) {
-      gameRow = '<div class="game">' + esc(data.gameA) + '<span class="colon">:</span>' + esc(data.gameB) + "</div>";
+      const serveBallA = !winner && data.server === "team1" ? '<span class="serve-ball left">' + BALL_SVG + "</span>" : "";
+      const serveBallB = !winner && data.server === "team2" ? '<span class="serve-ball right">' + BALL_SVG + "</span>" : "";
+      gameRow = '<div class="game">' +
+        '<span class="game-num">' + esc(data.gameA) + serveBallA + "</span>" +
+        '<span class="colon">:</span>' +
+        '<span class="game-num">' + esc(data.gameB) + serveBallB + "</span>" +
+        "</div>";
     }
 
     const metaParts = [];
