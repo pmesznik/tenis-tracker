@@ -166,6 +166,7 @@ const dict = {
     "tie.matchBanner": "Mecz w rywalizacji: {team1} vs {team2}",
     "tie.playerFor": "Zawodnik/zawodniczka — {team}",
     "tie.confirmDelete": "Usunąć tę rywalizację? (mecze pozostaną w historii)",
+    "tie.notFound": "Rywalizacja nie znaleziona",
   },
   en: {
     "common.back": "Back",
@@ -321,6 +322,7 @@ const dict = {
     "tie.matchBanner": "Tie match: {team1} vs {team2}",
     "tie.playerFor": "Player — {team}",
     "tie.confirmDelete": "Delete this tie? (matches stay in history)",
+    "tie.notFound": "Tie not found",
   },
 };
 

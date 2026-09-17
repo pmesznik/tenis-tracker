@@ -7,6 +7,7 @@ import * as storage from "./storage.js";
 import { computeScore, formatSetsString, buildSetRow, teamLabel, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildShareUrl, buildProShareUrl } from "./shareLink.js";
 import { clearLiveScore } from "./liveSync.js";
+import { removeMatchFromTie } from "./teamTies.js";
 import { formatDuration, longestPoint, averagePointDurationMs } from "./time.js";
 import { computeStats } from "./stats.js";
 
@@ -56,6 +57,7 @@ export default function MatchSummaryPage({ matchId, onBack, onContinue, onDelete
     if (!confirm(tr("common.confirmDeleteMatch"))) return;
     storage.deleteMatch(match.id);
     clearLiveScore(match.id);
+    if (match.teamTieId) removeMatchFromTie(match.teamTieId, match.id);
     onDeleted();
   };
 

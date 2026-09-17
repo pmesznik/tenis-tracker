@@ -37,6 +37,13 @@ function saveAll(ties) {
   } catch {}
 }
 
+// Nadpisuje całą listę rywalizacji naraz — używane przy imporcie kopii
+// zapasowej (backup.js), gdzie scalanie po id robi wywołujący, tak samo jak
+// storage.replaceAllMatches dla meczów.
+export function replaceAllTeamTies(ties) {
+  saveAll(ties);
+}
+
 export function getTeamTie(id) {
   return listTeamTies().find((tie) => tie.id === id) || null;
 }
@@ -76,6 +83,15 @@ export function addMatchToTie(tieId, matchId) {
   if (!tie) return null;
   if (tie.matchIds.includes(matchId)) return tie;
   return updateTeamTie(tieId, { matchIds: [...tie.matchIds, matchId] });
+}
+
+// Usuwa mecz z rywalizacji — wywoływane przy kasowaniu meczu (storage.js),
+// żeby matchIds nigdy nie wskazywało na już nieistniejący mecz (co zawyżałoby
+// "Rozegrano X z Y" o widma po usuniętych meczach).
+export function removeMatchFromTie(tieId, matchId) {
+  const tie = getTeamTie(tieId);
+  if (!tie) return null;
+  return updateTeamTie(tieId, { matchIds: tie.matchIds.filter((id) => id !== matchId) });
 }
 
 // Wynik rywalizacji — liczy tylko zakończone mecze; mecze wciąż "w trakcie"

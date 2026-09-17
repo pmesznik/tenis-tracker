@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import * as storage from "./storage.js";
 import { getFavoritePlayers, setFavoritePlayers } from "./players.js";
+import { listTeamTies, replaceAllTeamTies } from "./teamTies.js";
 
 export function exportBackup() {
   const data = {
@@ -13,6 +14,7 @@ export function exportBackup() {
     exportedAt: new Date().toISOString(),
     matches: storage.listMatches(),
     favoritePlayers: getFavoritePlayers(),
+    teamTies: listTeamTies(),
   };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: "application/json" });
@@ -56,6 +58,17 @@ export async function importBackupFile(file) {
   if (Array.isArray(data.favoritePlayers)) {
     const merged = [...new Set([...getFavoritePlayers(), ...data.favoritePlayers])];
     setFavoritePlayers(merged);
+  }
+
+  // Rywalizacje drużynowe scalane po id, tak samo jak mecze — te z pliku
+  // nadpisują te lokalne o tym samym id, reszta zostaje bez zmian.
+  if (Array.isArray(data.teamTies)) {
+    const currentTies = listTeamTies();
+    const tieById = new Map(currentTies.map((tie) => [tie.id, tie]));
+    for (const tie of data.teamTies) {
+      if (tie && tie.id) tieById.set(tie.id, tie);
+    }
+    replaceAllTeamTies([...tieById.values()]);
   }
 
   return { matchCount: byId.size };

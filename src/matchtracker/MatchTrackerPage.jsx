@@ -184,7 +184,11 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
   // tenisie: para przyjmująca ogłasza kolejność serwisu dopiero na początku
   // własnego pierwszego gemu serwisowego, może się jeszcze rozmyślić do tego
   // momentu). Blokuje wprowadzanie punktów tego gemu, dopóki nie odpowie.
-  if (match.isDoubles && score.server && !score.matchWinner && !match.serverOrder?.[score.server]) {
+  // Warunek "gem jeszcze bez punktów" chroni przed retrospektywnym pytaniem
+  // w środku już trwającego gema — np. dla meczu deblowego założonego przed
+  // wprowadzeniem tej funkcji, gdzie serverOrder nigdy nie zostało ustawione.
+  const currentGameHasNoPoints = score.game && score.game.a === "0" && score.game.b === "0";
+  if (match.isDoubles && score.server && !score.matchWinner && !match.serverOrder?.[score.server] && currentGameHasNoPoints) {
     const team = score.server;
     const names = (team === TEAM1 ? match.team1.names : match.team2.names) || [];
     const teamName = teamLabel(team, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));

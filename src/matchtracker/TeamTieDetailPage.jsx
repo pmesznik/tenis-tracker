@@ -55,7 +55,7 @@ export default function TeamTieDetailPage({ tieId, onBack, onDeleted, onAddMatch
     return (
       <FullScreen>
         <TopBar title={tr("tie.detailTitle")} onBack={onBack} />
-        <div style={styles.centered}>{tr("common.matchNotFound")}</div>
+        <div style={styles.centered}>{tr("tie.notFound")}</div>
       </FullScreen>
     );
   }

@@ -7,6 +7,7 @@ import * as storage from "./storage.js";
 import { computeScore, buildSetRow, teamLabel } from "./scoringEngine.js";
 import { shareMatch, buildShareUrl } from "./shareLink.js";
 import { clearLiveScore } from "./liveSync.js";
+import { removeMatchFromTie } from "./teamTies.js";
 
 function matchSetsRow(match) {
   if (match.status === "completed" && match.finalSetsOverride) {
@@ -73,8 +74,10 @@ export default function MatchListPage({ onNewMatch, onSaveResult, onOpenMatch })
   const refresh = () => setMatches(storage.listMatches());
 
   const handleDelete = (id) => {
+    const match = storage.getMatch(id);
     storage.deleteMatch(id);
     clearLiveScore(id);
+    if (match?.teamTieId) removeMatchFromTie(match.teamTieId, id);
     refresh();
   };
 
