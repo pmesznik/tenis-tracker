@@ -8,6 +8,10 @@ import MatchSetupPage from "./matchtracker/MatchSetupPage.jsx";
 import MatchTrackerPage from "./matchtracker/MatchTrackerPage.jsx";
 import MatchSummaryPage from "./matchtracker/MatchSummaryPage.jsx";
 import BackupModal from "./matchtracker/BackupModal.jsx";
+import TeamTieListPage from "./matchtracker/TeamTieListPage.jsx";
+import TeamTieSetupPage from "./matchtracker/TeamTieSetupPage.jsx";
+import TeamTieDetailPage from "./matchtracker/TeamTieDetailPage.jsx";
+import { getTeamTie } from "./matchtracker/teamTies.js";
 
 // Ekran przy pierwszym uruchomieniu — wybór języka jest jawny (nie zgadujemy
 // z ustawień systemu), żeby uniknąć niespodzianek. Zapamiętany w localStorage,
@@ -95,6 +99,10 @@ export default function App() {
                   background: "none", border: "none", cursor: "pointer", fontSize: 17,
                   color: t.textMuted, padding: 4, lineHeight: 1,
                 }}>💾</button>
+                <button onClick={() => setView({ name: "tieList" })} title={langCtx.t("tie.iconTitle")} style={{
+                  background: "none", border: "none", cursor: "pointer", fontSize: 17,
+                  color: t.textMuted, padding: 4, lineHeight: 1,
+                }}>🏆</button>
                 <button onClick={() => langCtx.setLang("pl")} title="Polski" style={{
                   background: "none", border: "none", cursor: "pointer", fontSize: 18,
                   opacity: langCtx.lang === "pl" ? 1 : 0.35, padding: 4, lineHeight: 1,
@@ -123,28 +131,61 @@ export default function App() {
         {view.name === "setup" && (
           <MatchSetupPage
             mode={view.mode}
-            onCancel={goToList}
+            onCancel={view.tieId ? () => setView({ name: "tieDetail", tieId: view.tieId }) : goToList}
             onSurfaceChange={setActiveSurface}
-            onCreated={(m) => setView(m.status === "in_progress" ? { name: "tracker", matchId: m.id } : { name: "summary", matchId: m.id })}
+            tieContext={(() => {
+              if (!view.tieId) return null;
+              const tie = getTeamTie(view.tieId);
+              return tie ? { tieId: tie.id, team1Name: tie.team1Name, team2Name: tie.team2Name } : null;
+            })()}
+            onCreated={(m) => setView(m.status === "in_progress" ? { name: "tracker", matchId: m.id, tieId: view.tieId } : { name: "summary", matchId: m.id, tieId: view.tieId })}
           />
         )}
 
         {view.name === "tracker" && (
           <MatchTrackerPage
             matchId={view.matchId}
-            onBack={goToList}
+            onBack={view.tieId ? () => setView({ name: "tieDetail", tieId: view.tieId }) : goToList}
             onSurfaceChange={setActiveSurface}
-            onFinished={(m) => setView({ name: "summary", matchId: m.id })}
+            onFinished={(m) => setView({ name: "summary", matchId: m.id, tieId: view.tieId })}
           />
         )}
 
         {view.name === "summary" && (
           <MatchSummaryPage
             matchId={view.matchId}
-            onBack={goToList}
-            onDeleted={goToList}
+            onBack={view.tieId ? () => setView({ name: "tieDetail", tieId: view.tieId }) : goToList}
+            onDeleted={view.tieId ? () => setView({ name: "tieDetail", tieId: view.tieId }) : goToList}
             onSurfaceChange={setActiveSurface}
-            onContinue={(id) => setView({ name: "tracker", matchId: id })}
+            onContinue={(id) => setView({ name: "tracker", matchId: id, tieId: view.tieId })}
+          />
+        )}
+
+        {view.name === "tieList" && (
+          <TeamTieListPage
+            onBack={goToList}
+            onNewTie={() => setView({ name: "tieSetup" })}
+            onOpenTie={(tie) => setView({ name: "tieDetail", tieId: tie.id })}
+          />
+        )}
+
+        {view.name === "tieSetup" && (
+          <TeamTieSetupPage
+            onBack={() => setView({ name: "tieList" })}
+            onCreated={(tie) => setView({ name: "tieDetail", tieId: tie.id })}
+          />
+        )}
+
+        {view.name === "tieDetail" && (
+          <TeamTieDetailPage
+            tieId={view.tieId}
+            onBack={() => setView({ name: "tieList" })}
+            onDeleted={() => setView({ name: "tieList" })}
+            onAddMatch={(mode) => setView({ name: "setup", mode, tieId: view.tieId })}
+            onOpenMatch={(m) => {
+              setActiveSurface(m.surface || null);
+              setView(m.status === "in_progress" ? { name: "tracker", matchId: m.id, tieId: view.tieId } : { name: "summary", matchId: m.id, tieId: view.tieId });
+            }}
           />
         )}
       </div>

@@ -6,6 +6,7 @@ import { Card, TopBar, FullScreen, ScrollBody, Chip } from "./ui.jsx";
 import * as storage from "./storage.js";
 import { PRESETS, DEFAULT_PRESET_KEY } from "./scoringEngine.js";
 import { buildPlayerIndex, suggestOpponents, getFavoritePlayers, toggleFavoritePlayer } from "./players.js";
+import { addMatchToTie } from "./teamTies.js";
 
 const DEPTHS = [
   { key: "basic", titleKey: "depth.basic.title", descKey: "depth.basic.desc" },
@@ -140,14 +141,13 @@ function DepthPickerModal({ onPick, onClose }) {
   );
 }
 
-export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceChange }) {
+export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceChange, tieContext }) {
   const { t, styles } = useThemeCtx();
   const { lang, t: tr } = useLang();
   const isManual = mode === "manual";
   const [tab, setTab] = useState("players");
 
   const [isDoubles, setIsDoubles] = useState(false);
-  const [isTeamEvent, setIsTeamEvent] = useState(false);
   const [t1a, setT1a] = useState("");
   const [t1b, setT1b] = useState("");
   const [t2a, setT2a] = useState("");
@@ -185,17 +185,23 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
     isDoubles,
     date: new Date().toISOString().slice(0, 10),
     surface: surface || "Twarda",
+    teamTieId: tieContext?.tieId || null,
   });
 
+  const linkToTie = (match) => {
+    if (tieContext) addMatchToTie(tieContext.tieId, match.id);
+    return match;
+  };
+
   const handleTrackConfirm = (depthKey) => {
-    const match = storage.createMatch({
+    const match = linkToTie(storage.createMatch({
       ...baseData(),
       rules: { ...preset },
       trackingDepth: depthKey,
       initialServer: null,
       status: "in_progress",
       pointLog: [],
-    });
+    }));
     setShowDepthModal(false);
     onCreated(match);
   };
@@ -214,14 +220,14 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
         return { a, b };
       });
     if (finalSets.length === 0) { alert(tr("setup.alertNeedOneSet")); return; }
-    const match = storage.createMatch({
+    const match = linkToTie(storage.createMatch({
       ...baseData(),
       rules: null,
       trackingDepth: "basic",
       status: "completed",
       pointLog: [],
       finalSetsOverride: finalSets,
-    });
+    }));
     onCreated(match);
   };
 
@@ -240,6 +246,14 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
         }} />
         {surface ? tr("setup.surfaceLabel", { surface: surfaceLabel(lang, surface) }) : tr("setup.surfaceNotChosen")}
       </div>
+      {tieContext && (
+        <div style={{
+          padding: "8px 16px", fontSize: 12, fontWeight: 700, color: t.accent,
+          background: `${t.accent}14`, borderBottom: `1px solid ${t.border}`, flexShrink: 0,
+        }}>
+          🏆 {tr("tie.matchBanner", { team1: tieContext.team1Name, team2: tieContext.team2Name })}
+        </div>
+      )}
       <div style={{ display: "flex", borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
         <TabBtn active={tab === "players"} onClick={() => setTab("players")}>{tr("setup.tabPlayers")}</TabBtn>
         {!isManual && <TabBtn active={tab === "rules"} onClick={() => setTab("rules")}>{tr("setup.tabRules")}</TabBtn>}
@@ -258,16 +272,13 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
               <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: t.text }}>
                 <input type="checkbox" checked={isDoubles} onChange={(e) => setIsDoubles(e.target.checked)} /> {tr("setup.doubles")}
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: t.textMuted }} title={tr("setup.teamEventTooltip")}>
-                <input type="checkbox" checked={isTeamEvent} disabled onChange={() => {}} /> {tr("setup.teamEvent")}
-              </label>
             </div>
             <datalist id="known-players">
               {playerIndex.allNames.map((n) => <option key={n} value={n} />)}
             </datalist>
 
             <NameField
-              label={tr("setup.team1")} value={t1a} onChange={setT1a}
+              label={tieContext ? tr("tie.playerFor", { team: tieContext.team1Name }) : tr("setup.team1")} value={t1a} onChange={setT1a}
               favorites={favorites} onToggleFavorite={handleToggleFavorite}
               suggestions={suggestOpponents(playerIndex, t2a)}
               placeholder={tr("common.fullName")} listId="known-players"
@@ -275,7 +286,7 @@ export default function MatchSetupPage({ mode, onCancel, onCreated, onSurfaceCha
             {isDoubles && <input style={{ ...styles.input, marginBottom: 16 }} value={t1b} onChange={(e) => setT1b(e.target.value)} placeholder={tr("common.partner")} list="known-players" />}
 
             <NameField
-              label={tr("setup.team2")} value={t2a} onChange={setT2a}
+              label={tieContext ? tr("tie.playerFor", { team: tieContext.team2Name }) : tr("setup.team2")} value={t2a} onChange={setT2a}
               favorites={favorites} onToggleFavorite={handleToggleFavorite}
               suggestions={suggestOpponents(playerIndex, t1a)}
               placeholder={tr("common.fullName")} listId="known-players"

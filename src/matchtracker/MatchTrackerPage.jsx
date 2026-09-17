@@ -4,7 +4,7 @@ import { useThemeCtx } from "../theme.js";
 import { useLang } from "../i18n.js";
 import { TopBar, FullScreen, BigButton, Chip, ScoreTile, TennisBall, ClockChip, ShareIcon } from "./ui.jsx";
 import * as storage from "./storage.js";
-import { computeScore, formatSetsString, buildSetRow, teamLabel, otherTeam, TEAM1, TEAM2 } from "./scoringEngine.js";
+import { computeScore, formatSetsString, buildSetRow, teamLabel, otherTeam, currentServerPlayerName, TEAM1, TEAM2 } from "./scoringEngine.js";
 import { shareMatch, buildLiveShareUrl } from "./shareLink.js";
 import { publishLiveScore } from "./liveSync.js";
 
@@ -76,8 +76,30 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
     if (newScore.matchWinner) onFinished(updated);
   };
 
-  const handleSelectServer = (team) => {
-    const updated = storage.updateMatch(match.id, { initialServer: team, startedAt: Date.now() });
+  const otherPlayerInTeam = (team, name) => {
+    const names = (team === TEAM1 ? match.team1.names : match.team2.names) || [];
+    return names.find((n) => n !== name) || names[0];
+  };
+
+  // Single: zapisuje initialServer, jak dotychczas. Debel: dodatkowo od razu
+  // ustala kolejność serwisu TYLKO drużyny, która zaczyna mecz — kolejność
+  // serwisu drugiej drużyny w prawdziwym tenisie ogłasza się dopiero na
+  // początku jej pierwszego gemu serwisowego (patrz handlePickOtherTeamServer
+  // niżej), nie wcześniej.
+  const handleSelectServer = (team, playerName) => {
+    const patch = { initialServer: team, startedAt: Date.now() };
+    if (match.isDoubles) {
+      patch.serverOrder = { [team]: [playerName, otherPlayerInTeam(team, playerName)] };
+    }
+    const updated = storage.updateMatch(match.id, patch);
+    setMatch(updated);
+  };
+
+  // Ustala kolejność serwisu drużyny, która właśnie zaczyna swój pierwszy w
+  // meczu gem serwisowy (wywoływane z bramki tuż przed Header/body niżej).
+  const handlePickOtherTeamServer = (team, playerName) => {
+    const serverOrder = { ...(match.serverOrder || {}), [team]: [playerName, otherPlayerInTeam(team, playerName)] };
+    const updated = storage.updateMatch(match.id, { serverOrder });
     setMatch(updated);
   };
 
@@ -122,15 +144,63 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
         <div style={{ padding: 16, textAlign: "center", fontSize: 15, fontWeight: 700, color: t.textSub }}>
           {tr("tracker.whoServes")}
         </div>
+        {match.isDoubles ? (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+            <div style={{ flex: 1, display: "flex", gap: 2 }}>
+              {(match.team1.names || []).map((nm) => (
+                <button key={nm} onClick={() => handleSelectServer(TEAM1, nm)} style={{
+                  flex: 1, background: t.secondary, color: "#fff", border: "none",
+                  fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                }}>{nm}<br /><span style={{ fontSize: 11, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
+              ))}
+            </div>
+            <div style={{ flex: 1, display: "flex", gap: 2 }}>
+              {(match.team2.names || []).map((nm) => (
+                <button key={nm} onClick={() => handleSelectServer(TEAM2, nm)} style={{
+                  flex: 1, background: t.secondarySoft, color: "#111144", border: "none",
+                  fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                }}>{nm}<br /><span style={{ fontSize: 11, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ flex: 1, display: "flex", gap: 2, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+            <button onClick={() => handleSelectServer(TEAM1)} style={{
+              flex: 1, background: t.secondary, color: "#fff", border: "none",
+              fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            }}>{name1}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
+            <button onClick={() => handleSelectServer(TEAM2)} style={{
+              flex: 1, background: t.secondarySoft, color: "#111144", border: "none",
+              fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            }}>{name2}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
+          </div>
+        )}
+      </FullScreen>
+    );
+  }
+
+  // ── Debel: kolejność serwisu drugiej drużyny ustalamy dopiero, gdy przychodzi
+  // jej pierwszy gem serwisowy w meczu — nie wcześniej (tak jak w prawdziwym
+  // tenisie: para przyjmująca ogłasza kolejność serwisu dopiero na początku
+  // własnego pierwszego gemu serwisowego, może się jeszcze rozmyślić do tego
+  // momentu). Blokuje wprowadzanie punktów tego gemu, dopóki nie odpowie.
+  if (match.isDoubles && score.server && !score.matchWinner && !match.serverOrder?.[score.server]) {
+    const team = score.server;
+    const names = (team === TEAM1 ? match.team1.names : match.team2.names) || [];
+    const teamName = teamLabel(team, match.team1.names, match.team2.names, tr("common.player1"), tr("common.player2"));
+    return (
+      <FullScreen>
+        <TopBar title={`${name1} vs. ${name2}`} onBack={onBack} />
+        <div style={{ padding: 16, textAlign: "center", fontSize: 15, fontWeight: 700, color: t.textSub }}>
+          {tr("tracker.whoServesOtherTeam", { team: teamName })}
+        </div>
         <div style={{ flex: 1, display: "flex", gap: 2, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-          <button onClick={() => handleSelectServer(TEAM1)} style={{
-            flex: 1, background: t.secondary, color: "#fff", border: "none",
-            fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          }}>{name1}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
-          <button onClick={() => handleSelectServer(TEAM2)} style={{
-            flex: 1, background: t.secondarySoft, color: "#111144", border: "none",
-            fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-          }}>{name2}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
+          {names.map((nm, i) => (
+            <button key={nm} onClick={() => handlePickOtherTeamServer(team, nm)} style={{
+              flex: 1, background: i === 0 ? t.secondary : t.secondarySoft, color: i === 0 ? "#fff" : "#111144", border: "none",
+              fontSize: 18, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            }}>{nm}<br /><span style={{ fontSize: 12, fontWeight: 500 }}>{tr("tracker.serves")}</span></button>
+          ))}
         </div>
       </FullScreen>
     );
@@ -138,6 +208,11 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
 
   // ── Nagłówek wyniku (wspólny dla wszystkich głębokości) ────────────────────
   const setCols = score.sets.map((s) => formatSetsString([s]).split("-"));
+  // W deblu, jeśli ustalono kolejność serwisu (serverOrder), piłeczka trafia
+  // przy konkretnym zawodniku zamiast całej drużyny — patrz
+  // currentServerPlayerName (w tie-breaku świadomie brak, rotacja punkt po
+  // punkcie między 4 osobami nie jest tu liczona, patrz scoringEngine.js).
+  const servingPlayer = currentServerPlayerName(match, score);
   const Header = (
     <div style={{ background: "transparent", flexShrink: 0, padding: "10px 14px 14px", borderBottom: `1px solid ${t.border}` }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
@@ -151,8 +226,21 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
             border: `1px solid ${score.server === team && !score.matchWinner ? `${t.accent}55` : t.border}`,
             borderRadius: 12,
           }}>
-            <span style={{ flex: 1, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-              {name} {score.server === team && !score.matchWinner && <TennisBall />}
+            <span style={{ flex: 1, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {match.isDoubles ? (
+                <>
+                  {(team === TEAM1 ? match.team1.names : match.team2.names).map((nm, i) => (
+                    <span key={nm} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      {i > 0 && <span style={{ color: t.textMuted, fontWeight: 400 }}> / </span>}
+                      {nm}
+                      {score.server === team && !score.matchWinner && servingPlayer === nm && <TennisBall size={12} />}
+                    </span>
+                  ))}
+                  {score.server === team && !score.matchWinner && !servingPlayer && <TennisBall size={12} />}
+                </>
+              ) : (
+                <>{name} {score.server === team && !score.matchWinner && <TennisBall />}</>
+              )}
             </span>
             {setCols.map((cols, i) => (
               <span key={i} style={{ width: 22, textAlign: "center", fontSize: 14, color: t.textMuted }}>{cols[rowIdx]}</span>

@@ -18,7 +18,7 @@ function toBase64Url(str) {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function deriveWinner(match) {
+export function deriveWinner(match) {
   if (match.status !== "completed") return null;
   if (match.finalSetsOverride) {
     let a = 0, b = 0;

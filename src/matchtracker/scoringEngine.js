@@ -236,7 +236,33 @@ export function computeScore(rules, pointLog, initialServer = TEAM1, startedAt =
     // to samo "koniec poprzedniego seta / start meczu", którego używa liczenie
     // durationMs powyżej, więc oba są ze sobą spójne.
     currentSetStartedAt: matchWinner ? null : setStartTime,
+    // Liczba ukończonych gemów w całym meczu — używane do wyliczenia, który z
+    // dwojga deblistów serwuje w danym gemie (patrz teamServiceTurnIndex niżej).
+    completedGames,
   };
+}
+
+// Który to (1-indeksowany) gem serwisowy drużyny `team` w całym meczu, licząc
+// razem z aktualnie trwającym gemem — serwis alternuje ściśle co gem, więc
+// wystarczy znać parzystość numeru gemu względem initialServer.
+export function teamServiceTurnIndex(team, initialServer, completedGames) {
+  const currentGameNumber = completedGames + 1; // 1-indeksowany
+  const oddCount = Math.ceil(currentGameNumber / 2);
+  const evenCount = Math.floor(currentGameNumber / 2);
+  return team === initialServer ? oddCount : evenCount;
+}
+
+// Imię konkretnego zawodnika serwującego aktualny gem w deblu — wymaga, żeby
+// przy starcie meczu ustalono kolejność serwisu obu drużyn (match.serverOrder).
+// Świadome uproszczenie: w tie-breaku/super tie-breaku serwis rotuje punkt po
+// punkcie między WSZYSTKIMI czterema zawodnikami, czego tu nie liczymy — w tej
+// sytuacji funkcja zwraca null, a UI pokazuje tylko drużynę (jak dotychczas).
+export function currentServerPlayerName(match, score) {
+  if (!match.isDoubles || !match.serverOrder || !score.server || score.game?.isTiebreak) return null;
+  const order = match.serverOrder[score.server];
+  if (!order || order.length < 2) return null;
+  const turnIndex = teamServiceTurnIndex(score.server, match.initialServer || TEAM1, score.completedGames ?? 0);
+  return order[(turnIndex - 1) % 2];
 }
 
 // Best-effort wykrycie "piłki meczowej" (do ewentualnego podświetlenia w UI).
