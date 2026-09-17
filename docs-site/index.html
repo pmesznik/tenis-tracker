@@ -234,8 +234,10 @@
     <option value="#funkcje">Funkcje</option>
     <option value="#architektura">Architektura wyniku</option>
     <option value="#zegar">Zegar meczu</option>
+    <option value="#debel">Serwis w deblu</option>
     <option value="#udostepnianie">Udostępnianie</option>
     <option value="#zawodnicy">Zawodnicy</option>
+    <option value="#rywalizacje">Rywalizacje drużynowe</option>
     <option value="#backup">Kopia zapasowa</option>
     <option value="#nawierzchnie">Nawierzchnie i motyw</option>
     <option value="#jezyki">Języki</option>
@@ -252,8 +254,10 @@
     <a href="#funkcje">Funkcje</a>
     <a href="#architektura">Architektura wyniku</a>
     <a href="#zegar">Zegar meczu</a>
+    <a href="#debel">Serwis w deblu</a>
     <a href="#udostepnianie">Udostępnianie</a>
     <a href="#zawodnicy">Zawodnicy</a>
+    <a href="#rywalizacje">Rywalizacje drużynowe</a>
     <a href="#backup">Kopia zapasowa</a>
     <a href="#nawierzchnie">Nawierzchnie i motyw</a>
     <a href="#jezyki">Języki</a>
@@ -272,7 +276,7 @@
           <div class="tagline">Dokumentacja projektu</div>
         </div>
       </div>
-      <div class="version-pill"><span class="dot"></span>v0.7.0</div>
+      <div class="version-pill"><span class="dot"></span>v0.9.1</div>
     </header>
 
     <p class="lede">
@@ -357,7 +361,17 @@
         <div class="feature">
           <span class="fi">💾</span>
           <h3>Kopia zapasowa</h3>
-          <p>Eksport i import historii meczów do pliku .json — na wypadek zmiany telefonu, bez chmury.</p>
+          <p>Eksport i import historii meczów (i rywalizacji drużynowych) do pliku .json — na wypadek zmiany telefonu, bez chmury.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">🔄</span>
+          <h3>Serwis w deblu</h3>
+          <p>Kolejność serwisu drugiej pary ustala się dopiero na początku jej pierwszego gemu — jak w prawdziwym tenisie. Piłeczka wskazuje konkretną osobę, nie całą parę.</p>
+        </div>
+        <div class="feature">
+          <span class="fi">🏆</span>
+          <h3>Rywalizacje drużynowe</h3>
+          <p>Dwie drużyny, dowolna liczba meczów singlowych i deblowych — wynik to suma wygranych meczów, jak w Pucharze Davisa.</p>
         </div>
       </div>
     </section>
@@ -409,6 +423,34 @@
         wg progów prawdziwego zegara serwisowego ATP/WTA: neutralny do 15s, bursztynowy 15–25s, czerwony i
         pulsujący po 25s.
       </p>
+    </section>
+
+    <section id="debel">
+      <div class="eyebrow">Debel</div>
+      <h2>Kolejność serwisu ustalana na bieżąco</h2>
+      <p>
+        Przy starcie meczu deblowego wybiera się tylko, kto serwuje jako pierwszy z drużyny zaczynającej mecz.
+        Kolejność serwisu <strong>drugiej pary</strong> aplikacja pyta dopiero, gdy przychodzi jej pierwszy gem
+        serwisowy — dokładnie tak, jak w prawdziwym tenisie, gdzie para przyjmująca ogłasza swoją kolejność
+        serwisu tuż przed własnym pierwszym gemem, nie wcześniej.
+      </p>
+      <div class="flow">
+        <div class="flow-box"><span class="k">gem 1</span><span class="v">Wybór serwującego</span><span class="d">tylko drużyna zaczynająca</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">gem 2</span><span class="v">Pytanie o 2. parę</span><span class="d">dopiero na starcie ich gemu</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">kolejne gemy</span><span class="v">Rotacja 2 osób</span><span class="d">na przemian w tej samej parze</span></div>
+      </div>
+      <p>
+        Raz ustaloną kolejność (<code>match.serverOrder</code>) <code>scoringEngine.js</code> wykorzystuje do
+        wyliczenia, które to serwisowe wejście danej pary w całym meczu (<code>teamServiceTurnIndex()</code>),
+        a stąd już prosto do imienia konkretnej osoby (<code>currentServerPlayerName()</code>) — piłeczka w
+        nagłówku trackera trafia więc przy właściwym zawodniku, nie przy całej parze.
+      </p>
+      <div class="callout">
+        Świadome uproszczenie: w tie-breaku/super tie-breaku serwis rotuje punkt po punkcie między wszystkimi
+        czterema zawodnikami — tego akurat nie liczymy, w tej sytuacji piłeczka wraca do wskazywania całej pary.
+      </div>
     </section>
 
     <section id="udostepnianie">
@@ -473,6 +515,36 @@
       </ul>
     </section>
 
+    <section id="rywalizacje">
+      <div class="eyebrow">Rywalizacje</div>
+      <h2>Rywalizacje drużynowe (tie)</h2>
+      <p>
+        Ikonka 🏆 w pasku listy meczów otwiera osobny widok rywalizacji: dwie nazwane drużyny i dowolna liczba
+        pojedynczych meczów (singlowych i deblowych) rozegranych między nimi. Wynik rywalizacji to po prostu
+        suma wygranych meczów po każdej stronie — tak jak w Pucharze Davisa.
+      </p>
+      <p>
+        <code>teamTies.js</code> to celowo cienka nakładka na już istniejące mecze — żaden nowy silnik wyników.
+        Rekord rywalizacji (<code>atz_team_ties</code> w <code>localStorage</code>) trzyma tylko nazwy drużyn i
+        listę <code>matchIds</code> wskazujących na zwykłe rekordy w <code>atz_matches</code>; każdy mecz dodany
+        w ramach rywalizacji ma drużynę A zawsze po stronie <code>team1</code>, drużynę B po stronie
+        <code>team2</code>, więc <code>computeTieScore()</code> liczy wygrane bez dodatkowego stanu do
+        synchronizowania.
+      </p>
+      <div class="flow">
+        <div class="flow-box"><span class="k">01</span><span class="v">Nowa rywalizacja</span><span class="d">nazwy dwóch drużyn</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">02</span><span class="v">Dodaj mecz</span><span class="d">na żywo albo zapisany wynik</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><span class="k">03</span><span class="v">Wynik rywalizacji</span><span class="d">suma wygranych meczów</span></div>
+      </div>
+      <div class="callout">
+        Usunięcie meczu należącego do rywalizacji usuwa też jego wpis z listy meczów tej rywalizacji
+        (<code>removeMatchFromTie()</code>) — licznik „Rozegrano X z Y” nigdy nie liczy skasowanych meczów.
+        Usunięcie samej rywalizacji nie kasuje meczów — zostają w historii, tracą tylko powiązanie.
+      </div>
+    </section>
+
     <section id="backup">
       <div class="eyebrow">Kopia zapasowa</div>
       <h2>Eksport i import historii do pliku</h2>
@@ -481,16 +553,17 @@
         backendu ani żadnej dodatkowej zależności — tylko standardowe API przeglądarki:
       </p>
       <div class="flow">
-        <div class="flow-box"><span class="k">export</span><span class="v">Blob + &lt;a download&gt;</span><span class="d">plik .json z meczami i ulubionymi</span></div>
+        <div class="flow-box"><span class="k">export</span><span class="v">Blob + &lt;a download&gt;</span><span class="d">plik .json z meczami, ulubionymi i rywalizacjami</span></div>
         <div class="flow-arrow">→</div>
         <div class="flow-box"><span class="k">import</span><span class="v">&lt;input type="file"&gt;</span><span class="d">natywny wybór pliku</span></div>
         <div class="flow-arrow">→</div>
         <div class="flow-box"><span class="k">merge</span><span class="v">scalanie po id</span><span class="d">nic lokalnego nie ginie</span></div>
       </div>
       <p>
-        Import scala zaimportowane mecze z tym, co już jest na urządzeniu — dopasowanie po <code>id</code>,
-        więc działa bezpiecznie zarówno przy pierwszym uruchomieniu na nowym telefonie (pusto → pełne
-        odtworzenie), jak i przy ponownym imporcie na telefonie, który już ma jakieś mecze.
+        Import scala zaimportowane mecze (i rywalizacje drużynowe) z tym, co już jest na urządzeniu —
+        dopasowanie po <code>id</code>, więc działa bezpiecznie zarówno przy pierwszym uruchomieniu na nowym
+        telefonie (pusto → pełne odtworzenie), jak i przy ponownym imporcie na telefonie, który już ma jakieś
+        mecze.
       </p>
     </section>
 
@@ -567,6 +640,7 @@ translate("en", "tracker.pointFor", { name: "Novak" })
 <span class="tree-c">   ├─</span> players.js        <span class="tree-comment">// indeks zawodników, ulubieni, podpowiedzi</span>
 <span class="tree-c">   ├─</span> storage.js        <span class="tree-comment">// CRUD na meczach w localStorage</span>
 <span class="tree-c">   ├─</span> backup.js         <span class="tree-comment">// eksport/import historii do pliku</span>
+<span class="tree-c">   ├─</span> teamTies.js       <span class="tree-comment">// rywalizacje drużynowe (nakładka na mecze)</span>
 <span class="tree-c">   ├─</span> shareLink.js      <span class="tree-comment">// link do wyniku / karty Pro / trybu live</span>
 <span class="tree-c">   ├─</span> liveSync.js       <span class="tree-comment">// zapis/odczyt Firebase Realtime DB</span>
 <span class="tree-c">   ├─</span> ui.jsx            <span class="tree-comment">// współdzielone komponenty (TopBar, ClockChip…)</span>
@@ -574,7 +648,10 @@ translate("en", "tracker.pointFor", { name: "Novak" })
 <span class="tree-c">   ├─</span> MatchListPage.jsx
 <span class="tree-c">   ├─</span> MatchSetupPage.jsx
 <span class="tree-c">   ├─</span> MatchTrackerPage.jsx
-<span class="tree-c">   └─</span> MatchSummaryPage.jsx
+<span class="tree-c">   ├─</span> MatchSummaryPage.jsx
+<span class="tree-c">   ├─</span> TeamTieListPage.jsx
+<span class="tree-c">   ├─</span> TeamTieSetupPage.jsx
+<span class="tree-c">   └─</span> TeamTieDetailPage.jsx
 
 <span class="tree-f">share-site/index.html</span>  <span class="tree-comment">// statyczna strona wyniku, hostowana osobno</span>
 <span class="tree-f">docs-site/index.html</span>   <span class="tree-comment">// ta strona dokumentacji</span>
@@ -616,7 +693,7 @@ npx cap sync android</code></pre>
 
     <footer>
       <span>Tennis Tracker — dokumentacja wewnętrzna projektu.</span>
-      <span>Wygenerowano dla wersji <span class="mono">v0.7.0</span></span>
+      <span>Wygenerowano dla wersji <span class="mono">v0.9.1</span></span>
     </footer>
   </main>
 </div>
