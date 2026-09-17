@@ -259,9 +259,9 @@ export default function MatchTrackerPage({ matchId, onBack, onFinished, onSurfac
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
         {score.game ? (
           <>
-            <ScoreTile key={`a-${score.game.a}`} value={score.game.a} />
+            <ScoreTile key={`a-${score.game.a}`} value={score.game.a} serving={score.game.server === TEAM1} servingSide="left" />
             <span style={{ fontSize: 22, fontWeight: 800, color: t.textMuted }}>:</span>
-            <ScoreTile key={`b-${score.game.b}`} value={score.game.b} />
+            <ScoreTile key={`b-${score.game.b}`} value={score.game.b} serving={score.game.server === TEAM2} servingSide="right" />
           </>
         ) : <span style={{ fontSize: 22, fontWeight: 800, color: t.accent }}>—</span>}
       </div>

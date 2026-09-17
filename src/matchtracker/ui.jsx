@@ -156,26 +156,41 @@ export function Card({ children, style }) {
 
 // Kafelek jak w mechanicznej tablicy wyników (split-flap) — użyj z key={value}
 // w miejscu wywołania, żeby animacja "przewracania" odtwarzała się przy
-// każdej zmianie liczby/etykiety.
-export function ScoreTile({ value, size = "lg" }) {
+// każdej zmianie liczby/etykiety. `serving` dokłada z boku kafelka małą,
+// odbijającą się piłeczkę — dodatkowa (redundantna z nazwiskiem w nagłówku),
+// ale czytelna "jednym rzutem oka" wskazówka, kto akurat serwuje. `servingSide`
+// wskazuje zewnętrzny bok kafelka (żeby piłeczka nie wchodziła w dwukropek
+// między dwoma kafelkami).
+export function ScoreTile({ value, size = "lg", serving = false, servingSide = "right" }) {
   const { t } = useThemeCtx();
   const big = size === "lg";
   return (
-    <div style={{
-      position: "relative", minWidth: big ? 56 : 36, height: big ? 68 : 42,
-      background: "linear-gradient(180deg, #2a3154 0%, #171b30 100%)",
-      borderRadius: 9, boxShadow: "0 5px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      overflow: "hidden", padding: "0 6px", animation: "tileFlip 0.32s ease",
-      transformOrigin: "center top",
-    }}>
-      <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 2, background: "rgba(0,0,0,0.45)", zIndex: 2 }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.06), transparent 55%)" }} />
-      <span style={{
-        position: "relative", zIndex: 1, color: t.accent, fontWeight: 800,
-        fontSize: big ? 30 : 17, lineHeight: 1, fontFamily: "inherit",
-        textShadow: "0 1px 2px rgba(0,0,0,0.5)",
-      }}>{value}</span>
+    <div style={{ position: "relative" }}>
+      {serving && (
+        <span style={{
+          position: "absolute", top: "50%", zIndex: 3, pointerEvents: "none",
+          animation: "ballBounce 0.9s ease-in-out infinite",
+          ...(servingSide === "left" ? { left: -20 } : { right: -20 }),
+        }}>
+          <TennisBall size={14} />
+        </span>
+      )}
+      <div style={{
+        position: "relative", minWidth: big ? 56 : 36, height: big ? 68 : 42,
+        background: "linear-gradient(180deg, #2a3154 0%, #171b30 100%)",
+        borderRadius: 9, boxShadow: "0 5px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        overflow: "hidden", padding: "0 6px", animation: "tileFlip 0.32s ease",
+        transformOrigin: "center top",
+      }}>
+        <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 2, background: "rgba(0,0,0,0.45)", zIndex: 2 }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.06), transparent 55%)" }} />
+        <span style={{
+          position: "relative", zIndex: 1, color: t.accent, fontWeight: 800,
+          fontSize: big ? 30 : 17, lineHeight: 1, fontFamily: "inherit",
+          textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+        }}>{value}</span>
+      </div>
     </div>
   );
 }

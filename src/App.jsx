@@ -83,6 +83,10 @@ export default function App() {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(0.8); }
         }
+        @keyframes ballBounce {
+          0%, 100% { transform: translateY(-50%); }
+          50% { transform: translateY(calc(-50% - 5px)); }
+        }
         input::placeholder { color: ${t.textMuted}; }
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
