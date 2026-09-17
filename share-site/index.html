@@ -47,6 +47,7 @@
     color:#171b38; background:var(--accent); padding:3px 10px; border-radius:10px; margin-bottom:14px;
   }
   .players{ font-size:21px; font-weight:800; line-height:1.5; }
+  .name-ball{ display:inline-flex; vertical-align:middle; margin-left:6px; }
   .vs{ font-size:12px; color:var(--text-muted); font-weight:700; letter-spacing:0.08em; margin:2px 0; }
   .winner{ color:var(--accent); }
   .winner .trophy{ margin-right:4px; }
@@ -54,11 +55,21 @@
     display:flex; justify-content:center; gap:14px; flex-wrap:wrap;
     font-size:26px; font-weight:800; color:var(--accent); margin:18px 0 6px;
   }
-  .game{ font-size:38px; font-weight:800; color:var(--text); margin:6px 0 14px; }
-  .game .colon{ color:var(--text-muted); margin:0 10px; }
-  .game-num{ position:relative; display:inline-block; }
+  .game{ display:flex; align-items:center; justify-content:center; gap:10px; margin:22px 0 16px; }
+  .game .colon{ color:var(--text-muted); font-size:22px; font-weight:800; }
+  .game-wrap{ position:relative; }
+  .score-tile{
+    position:relative; min-width:56px; height:68px;
+    background:linear-gradient(180deg, #2a3154 0%, #171b30 100%);
+    border-radius:9px; box-shadow:0 5px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; padding:0 6px;
+  }
+  .score-tile::before{ content:""; position:absolute; top:50%; left:0; right:0; height:2px; background:rgba(0,0,0,0.45); z-index:2; }
+  .score-tile::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(255,255,255,0.06), transparent 55%); }
+  .score-tile span{ position:relative; z-index:1; color:var(--accent); font-weight:800; font-size:30px; line-height:1; font-family:'Barlow Condensed','Oswald',sans-serif; text-shadow:0 1px 2px rgba(0,0,0,0.5); }
   .serve-ball{
-    position:absolute; top:50%; width:16px; height:16px; pointer-events:none;
+    position:absolute; top:50%; width:16px; height:16px; z-index:3; pointer-events:none;
     animation: ballBounce 0.9s ease-in-out infinite;
   }
   .serve-ball.left{ left:-22px; }
@@ -167,17 +178,17 @@
     const p2Class = winner === "team2" ? "winner" : "";
     const trophy1 = winner === "team1" ? '<span class="trophy">🏆</span>' : "";
     const trophy2 = winner === "team2" ? '<span class="trophy">🏆</span>' : "";
-    const ball1 = !winner && data.server === "team1" ? " 🎾" : "";
-    const ball2 = !winner && data.server === "team2" ? " 🎾" : "";
+    const ball1 = !winner && data.server === "team1" ? '<span class="name-ball">' + BALL_SVG + "</span>" : "";
+    const ball2 = !winner && data.server === "team2" ? '<span class="name-ball">' + BALL_SVG + "</span>" : "";
 
     let gameRow = "";
     if (!winner && (data.gameA != null || data.gameB != null)) {
       const serveBallA = !winner && data.server === "team1" ? '<span class="serve-ball left">' + BALL_SVG + "</span>" : "";
       const serveBallB = !winner && data.server === "team2" ? '<span class="serve-ball right">' + BALL_SVG + "</span>" : "";
       gameRow = '<div class="game">' +
-        '<span class="game-num">' + esc(data.gameA) + serveBallA + "</span>" +
+        '<div class="game-wrap">' + serveBallA + '<div class="score-tile"><span>' + esc(data.gameA) + "</span></div></div>" +
         '<span class="colon">:</span>' +
-        '<span class="game-num">' + esc(data.gameB) + serveBallB + "</span>" +
+        '<div class="game-wrap">' + serveBallB + '<div class="score-tile"><span>' + esc(data.gameB) + "</span></div></div>" +
         "</div>";
     }
 
